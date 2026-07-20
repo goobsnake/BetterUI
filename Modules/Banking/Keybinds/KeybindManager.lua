@@ -1022,6 +1022,16 @@ function BETTERUI.Banking.Class:UpdateActions()
 end
 
 function BETTERUI.Banking.Class:AddKeybinds()
+    if BETTERUI.CIM.SceneLifecycle
+        and not BETTERUI.CIM.SceneLifecycle.IsOwnerShowing(self) then
+        local purge = BETTERUI.Interface.RemoveKeybindGroupFromAllStates
+        if type(purge) == "function" then
+            purge(self.textSearchKeybindStripDescriptor)
+            purge(self.withdrawDepositKeybinds)
+            purge(self.coreKeybinds)
+        end
+        return false
+    end
     if BETTERUI.Log then
         BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "add keybinds")
     end

@@ -93,6 +93,10 @@ assert_true(refreshIntegration:find("ListRefreshManager:New%(%{") ~= nil,
 local currencySelector = read_file("Modules/Banking/Currency/CurrencySelector.lua")
 assert_true(currencySelector:find("local function BuildBankUpgradeDetailsLines%(%)") ~= nil,
     "CurrencySelector builds personal-bank upgrade detail rows")
+local _, currencySelectorHiddenGuardCount =
+    currencySelector:gsub("if not IsSceneOwnerShowing%(self%) then", "")
+assert_true(currencySelectorHiddenGuardCount >= 2,
+    "CurrencySelector blocks hidden acquisition and hidden restoration")
 assert_true(currencySelector:find("function CurrencySelector%.RefreshCurrencyTooltip%(self%)") ~= nil,
     "CurrencySelector exposes tooltip refresh behavior")
 assert_true(currencySelector:find("function BETTERUI%.Banking%.Class:RefreshCurrencyTooltip%(%)") ~= nil,
@@ -149,6 +153,8 @@ assert_true(multiSelectActions:find("ResolveMoveDestinationSlot%(bagId, slotInde
     "MultiSelectActions resolves guild-bank deposit destinations by stackable-or-empty slot")
 
 local bankRowSetup = read_file("Modules/Banking/Lists/BankRowSetup.lua")
+assert_true(bankRowSetup:find("SceneLifecycle%.IsOwnerShowing%(self%)") ~= nil,
+    "BankRowSetup refuses selection-driven keybind changes while hidden")
 assert_true(bankRowSetup:find('BETTERUI%.Banking%.CURRENCY_ROW_TEMPLATE = "BETTERUI_BankCurrencySelectorTemplate"') ~= nil,
     "BankRowSetup declares the banking currency row template")
 assert_true(bankRowSetup:find("function BETTERUI%.Banking%.Class%.SetupLabelListing%(control, data%)") ~= nil,
@@ -169,6 +175,11 @@ assert_true(bankingModule:find("function Banking%.InitModule%(m_options%)") ~= n
     "Banking module exposes InitModule")
 assert_true(bankingModule:find("function Banking%.Setup%(%)") ~= nil,
     "Banking module exposes Setup")
+
+local headerManager = read_file("Modules/Banking/UI/HeaderManager.lua")
+assert_true(headerManager:find(
+    "if self%.IsSceneShowing and not self:IsSceneShowing%(%) then") ~= nil,
+    "Banking refuses to acquire header keybinds while its scene is hidden")
 
 local sceneLifecycle = read_file("Modules/Banking/Scene/BankingSceneLifecycle.lua")
 assert_true(sceneLifecycle:find("local GUILD_BANK_EVENTS = %{%s*") ~= nil,
@@ -199,6 +210,8 @@ assert_true(searchManager:find("BETTERUI%.Interface%.RestoreKeybindGroups%(self%
     "ExitSearchMode restores exactly the groups the search cleanup removed")
 
 local stateManager = read_file("Modules/Banking/State/StateManager.lua")
+assert_true(stateManager:find("SceneLifecycle%.IsOwnerShowing%(self%)") ~= nil,
+    "StateManager does not restore empty-list keybinds while hidden")
 assert_true(stateManager:find("BETTERUI%.Banking%.SetRuntimeBankBags") ~= nil,
     "StateManager writes banking runtime bag state through the owned Banking runtime API")
 assert_true(stateManager:find("function BETTERUI%.Banking%.Class:SaveListPosition%(%)") ~= nil,
@@ -233,6 +246,10 @@ assert_true(headerManager:find("function BETTERUI%.Banking%.Class:EnsureHeaderKe
     "HeaderManager exposes EnsureHeaderKeybindsActive")
 assert_true(headerManager:find("function BETTERUI%.Banking%.Class:RebuildHeaderCategories%(%)") ~= nil,
     "HeaderManager exposes RebuildHeaderCategories")
+
+local keybindManager = read_file("Modules/Banking/Keybinds/KeybindManager.lua")
+assert_true(keybindManager:find("SceneLifecycle%.IsOwnerShowing%(self%)") ~= nil,
+    "KeybindManager refuses to add Banking keybind groups while hidden")
 
 local actionDialogUtils = read_file("Modules/CIM/Actions/ActionDialogUtils.lua")
 assert_true(actionDialogUtils:find("function BETTERUI%.CIM%.GetQuickslotLabel%(slotIndex%)") ~= nil,

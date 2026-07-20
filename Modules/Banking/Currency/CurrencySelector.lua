@@ -32,6 +32,26 @@ local function EnsureKeybindGroupAdded(descriptor)
     return false
 end
 
+local function IsSceneOwnerShowing(owner)
+    local lifecycle = BETTERUI.CIM and BETTERUI.CIM.SceneLifecycle
+    if lifecycle and type(lifecycle.IsOwnerShowing) == "function" then
+        return lifecycle.IsOwnerShowing(owner)
+    end
+    if owner and type(owner.IsSceneShowing) == "function" then
+        local ok, showing = pcall(owner.IsSceneShowing, owner)
+        return ok and showing == true
+    end
+    return true
+end
+
+local function PurgeKeybindGroup(descriptor)
+    local purge = BETTERUI.Interface and BETTERUI.Interface.RemoveKeybindGroupFromAllStates
+    if type(purge) == "function" then
+        return purge(descriptor)
+    end
+    return RemoveKeybindGroupIfPresent(descriptor)
+end
+
 ---@return {rows: {stat: string, value: string}[]}? details Bank upgrade details, or nil if not personal bank
 local function BuildBankUpgradeDetailsLines()
     local BANK_CAPACITY_ICON_TEXTURE = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds"
@@ -238,6 +258,12 @@ end
 ---@param self BETTERUI.Banking.Class
 ---@param currencyType integer ESO currency type constant (e.g. CURT_MONEY)
 function CurrencySelector.DisplaySelector(self, currencyType)
+    if not IsSceneOwnerShowing(self) then
+        PurgeKeybindGroup(self.currencySelectorKeybinds)
+        PurgeKeybindGroup(self.currencyKeybinds)
+        PurgeKeybindGroup(self.coreKeybinds)
+        return false
+    end
     if currencyType == nil then
         local selectedData = self.GetList and self:GetList() and self:GetList():GetSelectedData() or nil
         currencyType = selectedData and selectedData.currencyType or nil
@@ -330,7 +356,6 @@ function CurrencySelector.HideSelector(self)
 
     self.selector.control:GetParent():SetHidden(true)
     self.selector:Deactivate()
-    self.list:Activate()
 
     if BETTERUI.Log and BETTERUI.Log.TraceEvent then
         BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.KEYBIND, "bank.currency_selector", "before", {
@@ -346,7 +371,17 @@ function CurrencySelector.HideSelector(self)
     selectorState.currencyType = nil
     selectorState.mode = nil
     selectorState.isGuildBank = nil
-    RemoveKeybindGroupIfPresent(self.currencySelectorKeybinds)
+    PurgeKeybindGroup(self.currencySelectorKeybinds)
+    if not IsSceneOwnerShowing(self) then
+        if self.list and self.list.Deactivate then
+            self.list:Deactivate()
+        end
+        PurgeKeybindGroup(self.currencyKeybinds)
+        PurgeKeybindGroup(self.coreKeybinds)
+        return false
+    end
+
+    self.list:Activate()
     RemoveKeybindGroupIfPresent(self.currencyKeybinds)
     RemoveKeybindGroupIfPresent(self.coreKeybinds)
     EnsureKeybindGroupAdded(self.currencyKeybinds)

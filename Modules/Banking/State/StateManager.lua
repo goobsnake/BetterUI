@@ -35,14 +35,19 @@ end
 function BETTERUI.Banking.Class:HandleEmptyList()
     local totalEntries = (self.list and self.list.dataList and #self.list.dataList) or 0
     if totalEntries == 0 then
+        local sceneShowing = not BETTERUI.CIM.SceneLifecycle
+            or BETTERUI.CIM.SceneLifecycle.IsOwnerShowing(self)
         if KEYBIND_STRIP then
             if self.currencyKeybinds then
                 BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.currencyKeybinds)
             end
-            if self.withdrawDepositKeybinds then
+            if self.withdrawDepositKeybinds and sceneShowing then
                 -- Guarded add: AddKeybindButtonGroup raises a duplicate-group UI
                 -- error if the group is already on the strip.
                 BETTERUI.Interface.EnsureKeybindGroupAdded(self.withdrawDepositKeybinds)
+            elseif self.withdrawDepositKeybinds
+                and BETTERUI.Interface.RemoveKeybindGroupFromAllStates then
+                BETTERUI.Interface.RemoveKeybindGroupFromAllStates(self.withdrawDepositKeybinds)
             end
         end
         if GAMEPAD_TOOLTIPS then

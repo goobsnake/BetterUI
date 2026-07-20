@@ -80,6 +80,9 @@ function BETTERUI.Banking.Class:SetSearchDirectionalInputUpdate(enabled)
     if enabled ~= true then
         return false
     end
+    if self.IsSceneShowing and not self:IsSceneShowing() then
+        return false
+    end
     if not self:EnsureSearchMovementController()
         or not (DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.Activate) then
         return false
@@ -127,6 +130,7 @@ function BETTERUI.Banking.Class:UpdateSearchDirectionalInput()
 end
 
 function BETTERUI.Banking.Class:EnterSearchMode()
+    if self.IsSceneShowing and not self:IsSceneShowing() then return false end
     if self._searchModeActive then return end
     self._searchModeActive = true
     if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SEARCH, "enter search") end
@@ -175,6 +179,7 @@ end
 ---pushed search keybind state even though the edit box still owns focus.
 ---@return boolean maintained
 function BETTERUI.Banking.Class:MaintainSearchFocusAfterListRefresh()
+    if self.IsSceneShowing and not self:IsSceneShowing() then return false end
     if not self._searchModeActive then
         return false
     end
@@ -331,6 +336,7 @@ function BETTERUI.Banking.Class:OnSearchTextChanged(searchText)
         BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SEARCH, "search text changed", { query = searchText })
     end
     self.searchQuery = searchText
+    if self.IsSceneShowing and not self:IsSceneShowing() then return end
     local previousPreserve = self._preserveSearchFocusDuringRefresh == true
     self._preserveSearchFocusDuringRefresh = true
     if self.SaveListPosition then

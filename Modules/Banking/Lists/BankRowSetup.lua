@@ -203,6 +203,16 @@ end
 -- SELECTION CHANGE HELPERS
 
 local function UpdateKeybindsForSelection(self, isCurrencyRow)
+    if BETTERUI.CIM.SceneLifecycle
+        and not BETTERUI.CIM.SceneLifecycle.IsOwnerShowing(self) then
+        local purge = BETTERUI.Interface.RemoveKeybindGroupFromAllStates
+        if type(purge) == "function" then
+            purge(self.currencyKeybinds)
+            purge(self.withdrawDepositKeybinds)
+            purge(self.coreKeybinds)
+        end
+        return false
+    end
     if self.isInHeaderSortMode then
         if BETTERUI.Log and BETTERUI.Log.TraceEvent then
             BETTERUI.Log.TraceEvent(BETTERUI.Log.CATEGORY.KEYBIND, "bank.selection_keybinds", "skipped", { reason = "headerSort" })

@@ -74,6 +74,13 @@ end
 
 --- Activates the category tab bar keybinds.
 function BETTERUI.Banking.Class:EnsureHeaderKeybindsActive()
+    if self.IsSceneShowing and not self:IsSceneShowing() then
+        TraceBankHeader("bank.header_keybinds", "skipped", {
+            fn = "EnsureHeaderKeybindsActive",
+            reason = "sceneHidden",
+        })
+        return false
+    end
     if self.isInHeaderSortMode then
         TraceBankHeader("bank.header_keybinds", "skipped", {
             fn = "EnsureHeaderKeybindsActive",
@@ -114,6 +121,7 @@ function BETTERUI.Banking.Class:EnsureHeaderKeybindsActive()
         hasDescriptor = descriptor ~= nil,
         carouselMissing = carouselMissing == true,
     })
+    return true
 end
 
 --- Rebuilds the banking category header.
