@@ -46,6 +46,13 @@ local function read_file(path)
     return content
 end
 
+local function function_body(source, signature)
+    local startAt = source:find(signature, 1, true)
+    if not startAt then return "" end
+    local nextFunction = source:find("\nfunction ", startAt + #signature, true)
+    return source:sub(startAt, nextFunction and (nextFunction - 1) or #source)
+end
+
 BETTERUI = {
     Interface = {},
     CIM = {},
@@ -439,6 +446,14 @@ do
         "Banking search manager avoids string-path clear dispatch")
     assert_true(bankingSource:find("Interface%.Window%.OnEnterHeader") == nil,
         "Banking search manager avoids string-path header dispatch")
+    assert_true(function_body(bankingSource,
+            "function BETTERUI.Banking.Class:SetSearchDirectionalInputUpdate"):find(
+            "not self:IsSceneShowing()", 1, true) ~= nil,
+        "Banking cannot acquire search directional input while hidden")
+    assert_true(function_body(bankingSource,
+            "function BETTERUI.Banking.Class:EnterSearchMode"):find(
+            "not self:IsSceneShowing()", 1, true) ~= nil,
+        "Banking cannot enter search mode while hidden")
     assert_true(bankingRuntimeSource:find("function%(editOrText%)") == nil,
         "Banking runtime search callback consumes the normalized string payload")
 
@@ -451,6 +466,14 @@ do
         "Vendor search manager avoids string-path header dispatch")
     assert_true(vendorSource:find("OnSearchTextChanged%(editBox%)") == nil,
         "Vendor search callback consumes the normalized string payload")
+    assert_true(function_body(vendorSource,
+            "function BETTERUI.Vendor.Class:SetSearchDirectionalInputUpdate"):find(
+            "not self:IsSceneShowing()", 1, true) ~= nil,
+        "Vendor cannot acquire search directional input while hidden")
+    assert_true(function_body(vendorSource,
+            "function BETTERUI.Vendor.Class:EnterSearchMode"):find(
+            "not self:IsSceneShowing()", 1, true) ~= nil,
+        "Vendor cannot enter search mode while hidden")
     assert_true(vendorSource:find("KEYBIND_STRIP%.keybindButtonGroups") == nil,
         "Vendor search cleanup never reads the nonexistent keybindButtonGroups field")
     assert_true(vendorSource:find("_searchTextChangedInProgress", 1, true) ~= nil,
@@ -524,6 +547,16 @@ do
         "Inventory class uses the explicit SearchMixin.AddSearch seam")
     assert_true(inventoryClassSource:find("Inventory%.search%.getText") == nil,
         "Inventory search callback consumes the normalized string payload")
+
+    local companionSource = read_file("Modules/Companions/Core/CompanionsClass.lua")
+    assert_true(function_body(companionSource,
+            "function BETTERUI.Companions.Class:SetSearchDirectionalInputUpdate"):find(
+            "not self:IsSceneShowing()", 1, true) ~= nil,
+        "Companions cannot acquire search directional input while hidden")
+    assert_true(function_body(companionSource,
+            "function BETTERUI.Companions.Class:EnterSearchMode"):find(
+            "not self:IsSceneShowing()", 1, true) ~= nil,
+        "Companions cannot enter search mode while hidden")
 end
 
 -- Banking mirrors Vendor's stale deferred keybind-cleanup protection.

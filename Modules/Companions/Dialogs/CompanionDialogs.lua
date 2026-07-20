@@ -280,7 +280,7 @@ function Companions.ShowBatchDestroyConfirmation(items)
         fn = "Companions.ShowBatchDestroyConfirmation",
         itemCount = #destroyTargets,
     })
-    ZO_Dialogs_ShowGamepadDialog(COMPANION_BATCH_DESTROY_DIALOG, {
+    BETTERUI.CIM.Dialogs.ShowForOwner(Companions.instance, COMPANION_BATCH_DESTROY_DIALOG, {
         itemCount = #destroyTargets,
         destroyTargets = destroyTargets,
     })
@@ -599,7 +599,7 @@ function Companions.ShowCompanionEquipSlotDialog(bagId, slotIndex, equipSlots, e
         or type(ZO_Dialogs_ShowGamepadDialog) ~= "function" then
         return false
     end
-    ZO_Dialogs_ShowGamepadDialog(COMPANION_EQUIP_SLOT_DIALOG, {
+    BETTERUI.CIM.Dialogs.ShowForOwner(Companions.instance, COMPANION_EQUIP_SLOT_DIALOG, {
         bagId = bagId,
         slotIndex = slotIndex,
         equipSlots = equipSlots,

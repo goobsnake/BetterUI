@@ -291,6 +291,9 @@ function BETTERUI.Companions.Class:SetSearchDirectionalInputUpdate(enabled)
     if enabled ~= true then
         return false
     end
+    if self.IsSceneShowing and not self:IsSceneShowing() then
+        return false
+    end
     if not self:EnsureSearchMovementController()
         or not (DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.Activate) then
         return false
@@ -316,6 +319,7 @@ function BETTERUI.Companions.Class:SetSearchDirectionalInputUpdate(enabled)
 end
 
 function BETTERUI.Companions.Class:EnterSearchMode()
+    if self.IsSceneShowing and not self:IsSceneShowing() then return false end
     if not self.textSearchHeaderControl or self.textSearchHeaderControl:IsHidden() then
         TraceCompanionClass("companions.search_mode", "enter_skipped", {
             fn = "Companions.Class:EnterSearchMode",
@@ -428,10 +432,12 @@ function BETTERUI.Companions.Class:ExitSearchMode()
     if self.SetTextSearchFocused then
         self:SetTextSearchFocused(false)
     end
-    self:EnsureListInputActive()
-    self:EnsureHeaderKeybindsActive()
-    if self.coreKeybinds and KEYBIND_STRIP then
-        BETTERUI.Interface.UpdateKeybindGroup(self.coreKeybinds)
+    if sceneShowing then
+        self:EnsureListInputActive()
+        self:EnsureHeaderKeybindsActive()
+        if self.coreKeybinds and KEYBIND_STRIP then
+            BETTERUI.Interface.UpdateKeybindGroup(self.coreKeybinds)
+        end
     end
     TraceCompanionClass("companions.search_mode", "exited", {
         fn = "Companions.Class:ExitSearchMode",

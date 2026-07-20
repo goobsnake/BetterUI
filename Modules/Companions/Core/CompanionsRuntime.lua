@@ -497,9 +497,16 @@ function Companions.RegisterSceneLifecycle(instance)
             if Companions.multiSelectManager then
                 Companions.multiSelectManager:ExitSelectionMode()
             end
-            CallCompanionSearchLifecycle(Companions.instance, "exit")
-            if screen.ClearSearchInput then
-                screen:ClearSearchInput()
+            local cleanup = BETTERUI.CIM.SceneCleanup
+            if cleanup then
+                cleanup.CleanupInputState(screen)
+                cleanup.DeactivateLists(screen)
+                cleanup.ClearSearchState(screen)
+            else
+                CallCompanionSearchLifecycle(Companions.instance, "exit")
+                if screen.ClearSearchInput then
+                    screen:ClearSearchInput()
+                end
             end
             local category = screen:GetCurrentCategory()
             if category and screen.list then
@@ -522,6 +529,12 @@ function Companions.RegisterSceneLifecycle(instance)
             screen:DeactivateHeaderKeybinds()
             if screen.ForceReleaseDirectionalInput then
                 screen:ForceReleaseDirectionalInput()
+            end
+            local cleanup = BETTERUI.CIM.SceneCleanup
+            if cleanup then
+                cleanup.CleanupInputState(screen)
+                cleanup.DeactivateLists(screen)
+                cleanup.ClearSearchState(screen)
             end
         end,
     })
@@ -839,7 +852,7 @@ function Companions.BuildCoreKeybinds(instance)
                 local ms = Companions.multiSelectManager
                 if ms and ms:IsActive() then
                     if ZO_Dialogs_ShowGamepadDialog then
-                        ZO_Dialogs_ShowGamepadDialog("BETTERUI_COMPANION_BATCH_DIALOG")
+                        BETTERUI.CIM.Dialogs.ShowForOwner(instance, "BETTERUI_COMPANION_BATCH_DIALOG")
                         TraceCompanionKeybind("actions_dialog_shown", instance, { keybind = "UI_SHORTCUT_TERTIARY", dialog = "BETTERUI_COMPANION_BATCH_DIALOG" })
                     end
                     return
@@ -852,7 +865,7 @@ function Companions.BuildCoreKeybinds(instance)
                         dataSource.bagId, dataSource.slotIndex)
                     or nil
                 if selectedData and expectedIdentity and ZO_Dialogs_ShowGamepadDialog then
-                    ZO_Dialogs_ShowGamepadDialog("BETTERUI_COMPANION_ACTION_DIALOG", {
+                    BETTERUI.CIM.Dialogs.ShowForOwner(instance, "BETTERUI_COMPANION_ACTION_DIALOG", {
                         selectedData = selectedData,
                         expectedIdentity = expectedIdentity,
                     })

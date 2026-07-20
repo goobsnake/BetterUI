@@ -86,6 +86,10 @@ BETTERUI = {
             end,
         },
         Dialogs = {
+            ShowForOwner = function(_, name, data)
+                ZO_Dialogs_ShowGamepadDialog(name, data)
+                return true
+            end,
             GetCurrentInfo = function(name)
                 return registrations[name]
             end,

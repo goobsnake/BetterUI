@@ -63,6 +63,10 @@ assert_not_contains(runtimeSource, "COMPANION_EQUIPMENT_GAMEPAD_SCENE = scene",
     "Companions runtime leaves the native companion scene global untouched")
 assert_contains(runtimeSource, "function Companions.RegisterSceneLifecycle(instance)",
     "Companions runtime helper owns scene lifecycle registration")
+assert_contains(runtimeSource, "cleanup.CleanupInputState(screen)",
+    "Companions scene teardown routes through shared input ownership cleanup")
+assert_contains(runtimeSource, "cleanup.ClearSearchState(screen)",
+    "Companions scene teardown routes through shared search ownership cleanup")
 assert_contains(runtimeSource, "function Companions.RegisterEvents(eventManager)",
     "Companions runtime helper owns event registration")
 assert_contains(runtimeSource, "function BETTERUI.Companions.Class:TryEquipItem(inventorySlot)",

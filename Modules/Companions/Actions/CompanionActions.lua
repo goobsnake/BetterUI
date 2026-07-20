@@ -577,7 +577,8 @@ end
 function Companions.ShowCompanionSplitStackDialog(bagId, slotIndex)
     local stackSize = GetSlotStackSize(bagId, slotIndex) or 1
     if stackSize > 1 and ZO_Dialogs_ShowGamepadDialog then
-        ZO_Dialogs_ShowGamepadDialog("ZO_GAMEPAD_SPLIT_STACK_DIALOG", { bag = bagId, slot = slotIndex, stack = stackSize })
+        BETTERUI.CIM.Dialogs.ShowForOwner(Companions.instance,
+            "ZO_GAMEPAD_SPLIT_STACK_DIALOG", { bag = bagId, slot = slotIndex, stack = stackSize })
         TraceCompanionAction("companions.split_stack_dialog", "shown", { fn = "ShowCompanionSplitStackDialog", dialog = "ZO_GAMEPAD_SPLIT_STACK_DIALOG", bagId = bagId, slotIndex = slotIndex, stackSize = stackSize })
         return true
     end

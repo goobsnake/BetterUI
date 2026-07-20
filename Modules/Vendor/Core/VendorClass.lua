@@ -1002,6 +1002,9 @@ function BETTERUI.Vendor.Class:SetSearchDirectionalInputUpdate(enabled, reason)
     if enabled ~= true then
         return false
     end
+    if self.IsSceneShowing and not self:IsSceneShowing() then
+        return false
+    end
 
     if not self:EnsureSearchMovementController(reason or "setSearchDirectionalInputUpdate") then
         return false
@@ -1732,6 +1735,7 @@ end
 --- Enters text-search focus using the Inventory-style focus lifecycle.
 ---@return nil
 function BETTERUI.Vendor.Class:EnterSearchMode()
+    if self.IsSceneShowing and not self:IsSceneShowing() then return false end
     local reason = "enterSearchMode"
     if not (self.textSearchHeaderControl and self.textSearchHeaderFocus) then
         TraceVendorSearchFocus("skipped", self, reason, { skipReason = "missingSearchFocus" })
@@ -1794,6 +1798,7 @@ end
 ---@return nil
 function BETTERUI.Vendor.Class:RestoreSearchFocus(reason)
     reason = reason or "exitSearchMode"
+    local sceneShowing = (not self.IsSceneShowing) or self:IsSceneShowing()
     if self._restoringVendorSearchFocus then
         return
     end
@@ -1865,6 +1870,15 @@ function BETTERUI.Vendor.Class:RestoreSearchFocus(reason)
     -- again here before the reclaim. Idempotent: a no-op if the earlier removal took.
     if self.textSearchKeybindStripDescriptor and KEYBIND_STRIP then
         BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.textSearchKeybindStripDescriptor)
+    end
+
+    if not sceneShowing then
+        local purge = BETTERUI.Interface and BETTERUI.Interface.RemoveKeybindGroupFromAllStates
+        if type(purge) == "function" then
+            purge(self.textSearchKeybindStripDescriptor)
+        end
+        self._restoringVendorSearchFocus = nil
+        return
     end
 
     if self.coreKeybinds then
@@ -1965,6 +1979,7 @@ function BETTERUI.Vendor.Class:OnSearchTextChanged(searchText)
         end
     end
     self.searchQuery = normalized
+    if self.IsSceneShowing and not self:IsSceneShowing() then return end
     if self._searchTextChangedInProgress then
         return
     end
