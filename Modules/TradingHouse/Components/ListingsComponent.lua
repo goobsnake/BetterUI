@@ -319,6 +319,10 @@ function Listings:OnPrimaryAction(thInstance)
     if type(ZO_GamepadTradingHouse_Dialogs_DisplayConfirmationDialog) == "function" then
         ZO_GamepadTradingHouse_Dialogs_DisplayConfirmationDialog(dialogItemData,
             "TRADING_HOUSE_CONFIRM_REMOVE_LISTING", price, ds.icon)
+        if BETTERUI.CIM.Dialogs.ClaimShownForOwner then
+            BETTERUI.CIM.Dialogs.ClaimShownForOwner(
+                thInstance, "TRADING_HOUSE_CONFIRM_REMOVE_LISTING")
+        end
         TraceListings("trading_house.cancel_listing_dialog", "shown", thInstance, {
             fn = "TradingHouse.ListingsComponent.OnPrimaryAction",
             dialog = "TRADING_HOUSE_CONFIRM_REMOVE_LISTING",
@@ -329,7 +333,7 @@ function Listings:OnPrimaryAction(thInstance)
             item = item,
         }, BETTERUI.Log and BETTERUI.Log.CATEGORY.DIALOG)
     elseif type(ZO_Dialogs_ShowGamepadDialog) == "function" then
-        ZO_Dialogs_ShowGamepadDialog("TRADING_HOUSE_CONFIRM_REMOVE_LISTING", {
+        BETTERUI.CIM.Dialogs.ShowForOwner(thInstance, "TRADING_HOUSE_CONFIRM_REMOVE_LISTING", {
             listingIndex = listingIndex,
             stackCount = dialogItemData.stackCount,
             price = price,

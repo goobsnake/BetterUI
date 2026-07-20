@@ -318,7 +318,7 @@ function Sell:OnPrimaryAction(thInstance)
         return
     end
 
-    ZO_Dialogs_ShowGamepadDialog("BETTERUI_TRADING_HOUSE_CREATE_LISTING", {
+    BETTERUI.CIM.Dialogs.ShowForOwner(thInstance, "BETTERUI_TRADING_HOUSE_CREATE_LISTING", {
         bagId        = bagId,
         slotIndex    = slotIndex,
         stackCount   = stackCount,

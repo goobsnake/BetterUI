@@ -542,8 +542,16 @@ function TH.ShowScene()
     return true
 end
 
+local function InvalidateOwnershipReassert()
+    TH._ownershipReassertGeneration = (TH._ownershipReassertGeneration or 0) + 1
+    if TH.Tasks and TH.Tasks.Cancel then
+        TH.Tasks:Cancel("sceneOwnershipOpen")
+    end
+end
+
 function TH.HandOffToNativeTradingHouse(reason, data)
     data = data or {}
+    InvalidateOwnershipReassert()
     TH.RestoreNativeSceneAlias()
     TH.nativeHandoffActive = false
     TH.nativeHandoffNeedsBetterUICleanup = false
@@ -585,6 +593,44 @@ function TH.HandOffToNativeTradingHouse(reason, data)
     return ok == true
 end
 
+--- Opens ESOUI's native selectable Recent Searches list after transferring scene ownership.
+---@param reason string|nil
+---@param data table|nil
+---@return boolean
+function TH.OpenNativeSearchHistory(reason, data)
+    local nativeTH = rawget(_G, "TRADING_HOUSE_GAMEPAD")
+    if not (nativeTH and type(nativeTH.EnterSearchHistory) == "function") then
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE,
+            "trading_house.native_search_history", "skipped", {
+                fn = "TradingHouse.OpenNativeSearchHistory",
+                reason = reason or "unknown",
+                missingNativeSearchHistory = true,
+            })
+        return false
+    end
+
+    data = data or {}
+    data.interactionType = data.interactionType
+        or (GetInteractionType and GetInteractionType() or nil)
+    if not TH.HandOffToNativeTradingHouse(reason or "recentSearches", data) then
+        TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE,
+            "trading_house.native_search_history", "handoff_failed", {
+                fn = "TradingHouse.OpenNativeSearchHistory",
+                reason = reason or "unknown",
+            })
+        return false
+    end
+
+    local ok, err = pcall(nativeTH.EnterSearchHistory, nativeTH)
+    TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE,
+        "trading_house.native_search_history", ok and "opened" or "open_failed", {
+            fn = "TradingHouse.OpenNativeSearchHistory",
+            reason = reason or "unknown",
+            error = ok and nil or tostring(err),
+        })
+    return ok == true
+end
+
 function TH.CloseNativeTradingHouseHandoff(reason)
     if TH.nativeHandoffActive ~= true then
         return false, false
@@ -615,7 +661,23 @@ function TH.CloseNativeTradingHouseHandoff(reason)
 end
 
 function TH.ScheduleOwnershipReassert()
+    TH._ownershipReassertGeneration = (TH._ownershipReassertGeneration or 0) + 1
+    local reassertGeneration = TH._ownershipReassertGeneration
+
     local function ReassertTradingHouseOwnership()
+        if reassertGeneration ~= TH._ownershipReassertGeneration
+            or TH.nativeHandoffActive == true then
+            TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE,
+                "trading_house.scene_ownership", "reassert_aborted", {
+                    fn = "TradingHouse.ScheduleOwnershipReassert",
+                    feature = "trading-house-scene",
+                    reason = TH.nativeHandoffActive == true
+                        and "nativeHandoffActive" or "staleGeneration",
+                    generation = reassertGeneration,
+                    currentGeneration = TH._ownershipReassertGeneration,
+                })
+            return
+        end
         local currentInteraction = GetInteractionType and GetInteractionType() or nil
         if currentInteraction and currentInteraction ~= INTERACTION_TRADINGHOUSE then
             TraceTHFlow(BETTERUI.Log and BETTERUI.Log.CATEGORY.SCENE, "trading_house.scene_ownership", "reassert_aborted", {

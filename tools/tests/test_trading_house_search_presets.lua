@@ -8,7 +8,12 @@ Usage:
 BETTERUI = {
     TradingHouse = {},
     CIM = {
-        Dialogs = {},
+        Dialogs = {
+            ShowForOwner = function(_, name, data)
+                ZO_Dialogs_ShowGamepadDialog(name, data)
+                return true
+            end,
+        },
     },
 }
 

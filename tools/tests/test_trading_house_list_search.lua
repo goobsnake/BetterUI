@@ -28,6 +28,7 @@ if source then
     local removedGroups = {}
     local clearTextCount = 0
     local positionCount = 0
+    local positionOptions = nil
     local wrappedTopExit = nil
 
     BETTERUI = {
@@ -43,8 +44,9 @@ if source then
             end,
             UpdateKeybindGroup = function() return true end,
             CreateSearchKeybindDescriptor = function() return { id = "search" } end,
-            PositionSearchControl = function()
+            PositionSearchControl = function(_, options)
                 positionCount = positionCount + 1
+                positionOptions = options
             end,
             SearchMixin = {
                 ClearSearchText = function()
@@ -161,6 +163,34 @@ if source then
     assert_eq(type(instance.searchCallback), "function", "search initialization wires text changes")
     assert_eq(type(instance.searchHandlerOptions), "table", "search initialization wires edit-box focus handlers")
     assert_eq(positionCount, 1, "search initialization positions the shared search control")
+    assert_eq(positionOptions and positionOptions.yOffset, 9,
+        "Trading House search is positioned slightly below the Inventory preset")
+    assert_eq(positionOptions and positionOptions.fallbackY, 9,
+        "Trading House fallback search position uses the same lower offset")
+
+    local ensuredBeforeHiddenCheck = #ensuredGroups
+    instance.sceneShowing = false
+    assert_eq(instance:EnsureHeaderKeybindsActive(), false,
+        "hidden Trading House rejects carousel ownership")
+    assert_eq(#ensuredGroups, ensuredBeforeHiddenCheck,
+        "hidden Trading House cannot add its carousel keybind group")
+    instance.sceneShowing = true
+
+    local ensuredBeforeHiddenSearch = #ensuredGroups
+    instance.sceneShowing = false
+    list.active = true
+    focus.active = false
+    instance._searchModeActive = false
+    instance:EnterSearchMode()
+    assert_eq(instance._searchModeActive, false,
+        "hidden Trading House rejects search ownership")
+    assert_eq(list.active, true,
+        "hidden Trading House search cannot deactivate the item list")
+    assert_eq(focus.active, false,
+        "hidden Trading House search cannot activate header focus")
+    assert_eq(#ensuredGroups, ensuredBeforeHiddenSearch,
+        "hidden Trading House search cannot add keybind groups")
+    instance.sceneShowing = true
 
     instance:EnterSearchMode()
     assert_eq(instance._searchModeActive, true, "enter search records active focus ownership")

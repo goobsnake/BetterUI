@@ -71,9 +71,6 @@ function Filters.ShowFilterDialog()
         local function RestoreTradingHouseFocus()
             local instance = TH.instance
             if not (instance and instance.IsSceneShowing and instance:IsSceneShowing()) then return end
-            if TH.ReleaseForeignCarouselKeybinds then
-                TH.ReleaseForeignCarouselKeybinds()
-            end
             if instance.UpdateTabHeader then
                 instance:UpdateTabHeader()
             end
@@ -497,8 +494,58 @@ function Filters.ShowFilterDialog()
             return captured
         end
 
+        local function AddRecentSearchesEntry()
+            local label = L("SI_TRADING_HOUSE_SEARCH_HISTORY_TITLE", "Recent Searches")
+            return {
+                template = "ZO_GamepadMenuEntryTemplate",
+                text = label,
+                templateData = {
+                    setup = function(control)
+                        if control and control.label and control.label.SetText then
+                            control.label:SetText(label)
+                        end
+                    end,
+                    narrationText = function()
+                        if SCREEN_NARRATION_MANAGER
+                            and SCREEN_NARRATION_MANAGER.CreateNarratableObject then
+                            return SCREEN_NARRATION_MANAGER:CreateNarratableObject(label)
+                        end
+                        return label
+                    end,
+                    callback = function(dialog)
+                        if type(TH.OpenNativeSearchHistory) ~= "function" then
+                            TraceFilters("trading_house.filters_dialog", "recent_searches_skipped", {
+                                fn = "Filters.ShowFilterDialog",
+                                reason = "missingNativeHistoryHandoff",
+                            })
+                            return
+                        end
+                        dialog.data = dialog.data or {}
+                        dialog.data._handoffToNative = true
+                        TraceFilters("trading_house.filters_dialog", "recent_searches", {
+                            fn = "Filters.ShowFilterDialog",
+                        })
+                        if ZO_Dialogs_ReleaseDialogOnButtonPress then
+                            ZO_Dialogs_ReleaseDialogOnButtonPress(FILTER_DIALOG_NAME)
+                        end
+                        local function OpenHistory()
+                            if not TH.OpenNativeSearchHistory("editFiltersRecentSearches") then
+                                RestoreTradingHouseFocus()
+                            end
+                        end
+                        if type(zo_callLater) == "function" then
+                            zo_callLater(OpenHistory, 0)
+                        else
+                            OpenHistory()
+                        end
+                    end,
+                },
+            }
+        end
+
         BuildFilterParametricList = function()
             local rows = {
+                AddRecentSearchesEntry(),
                 AddTextField("SI_BETTERUI_TH_FILTER_NAME", "nameText", false),
             }
             local features = GetBrowseFeatures()
@@ -571,6 +618,7 @@ function Filters.ShowFilterDialog()
             end,
             finishedCallback = function(dialog)
                 local data = dialog and dialog.data
+                local handoffToNative = data and data._handoffToNative == true
                 local activeDropdown = data and data._activeDropdown
                 local releasedCount = 0
                 if data and data._ownedDropdowns then
@@ -586,16 +634,20 @@ function Filters.ShowFilterDialog()
                     data._activeDropdown = nil
                     data._ownedDropdowns = nil
                     data._filterRebuildScheduled = nil
+                    data._handoffToNative = nil
                 end
                 TraceFilters("trading_house.filters_dialog", "finished", {
                     fn = "Filters.ShowFilterDialog",
                     releasedInput = releasedCount > 0,
                     releasedCount = releasedCount,
+                    handoffToNative = handoffToNative,
                 })
-                if type(zo_callLater) == "function" then
-                    zo_callLater(RestoreTradingHouseFocus, 0)
-                else
-                    RestoreTradingHouseFocus()
+                if not handoffToNative then
+                    if type(zo_callLater) == "function" then
+                        zo_callLater(RestoreTradingHouseFocus, 0)
+                    else
+                        RestoreTradingHouseFocus()
+                    end
                 end
             end,
             parametricList = {},
@@ -685,5 +737,5 @@ function Filters.ShowFilterDialog()
     TraceFilters("trading_house.filters_dialog", "shown", {
         fn = "Filters.ShowFilterDialog",
     })
-    ZO_Dialogs_ShowGamepadDialog(FILTER_DIALOG_NAME, {})
+    BETTERUI.CIM.Dialogs.ShowForOwner(TH.instance, FILTER_DIALOG_NAME, {})
 end

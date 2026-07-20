@@ -310,6 +310,15 @@ assert_true(filterSource:find("instance:UpdateTabHeader()", 1, true) ~= nil,
     "dialog close rebuilds the Trading House header carousel")
 assert_true(filterSource:find("instance.list.Activate", 1, true) ~= nil,
     "dialog close reactivates the results list")
+local recentEntryIndex = filterSource:find("AddRecentSearchesEntry()", 1, true)
+local nameEntryIndex = filterSource:find(
+    'AddTextField("SI_BETTERUI_TH_FILTER_NAME", "nameText", false)', 1, true)
+assert_true(recentEntryIndex ~= nil and nameEntryIndex ~= nil and recentEntryIndex < nameEntryIndex,
+    "Recent Searches is the first navigable row in Edit Filters")
+assert_true(filterSource:find("TH.OpenNativeSearchHistory", 1, true) ~= nil,
+    "Recent Searches opens the stock Trading House history section")
+assert_true(filterSource:find("_handoffToNative", 1, true) ~= nil,
+    "native history handoff suppresses Trading House focus restoration")
 
 local runtimeFile = assert(io.open("Modules/TradingHouse/Core/TradingHouseRuntime.lua", "r"))
 local runtimeSource = runtimeFile:read("*a")
@@ -330,6 +339,16 @@ assert_true(runtimeSource:find('keybind = "UI_SHORTCUT_RIGHT_TRIGGER"', 1, true)
     "next-page action retains native right-trigger assignment")
 assert_true(runtimeSource:find('keybind = "UI_SHORTCUT_LEFT_TRIGGER"', 1, true) ~= nil,
     "previous-page action retains native left-trigger assignment")
+assert_true(runtimeSource:find("SearchForSelectedTHItem", 1, true) == nil,
+    "obsolete Hold X Search For Item behavior is removed")
+assert_true(runtimeSource:find("OpenTHRecentSearches", 1, true) == nil,
+    "obsolete Hold X Recent Searches behavior is removed")
+
+local runtimeFlowFile = assert(io.open("Modules/TradingHouse/Core/TradingHouseRuntimeFlow.lua", "r"))
+local runtimeFlowSource = runtimeFlowFile:read("*a")
+runtimeFlowFile:close()
+assert_true(runtimeFlowSource:find("function TH.OpenNativeSearchHistory", 1, true) ~= nil,
+    "runtime flow owns the native Recent Searches handoff")
 
 print(string.format("\nResults: %d passed, %d failed", passed, failed))
 if failed > 0 then

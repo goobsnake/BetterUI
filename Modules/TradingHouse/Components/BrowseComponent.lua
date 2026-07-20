@@ -502,6 +502,10 @@ function Browse:OnPrimaryAction(thInstance)
     if ZO_GamepadTradingHouse_Dialogs_DisplayConfirmationDialog then
         ZO_GamepadTradingHouse_Dialogs_DisplayConfirmationDialog(dialogItemData,
             "TRADING_HOUSE_CONFIRM_BUY_ITEM", price, ds.icon)
+        if BETTERUI.CIM.Dialogs.ClaimShownForOwner then
+            BETTERUI.CIM.Dialogs.ClaimShownForOwner(
+                thInstance, "TRADING_HOUSE_CONFIRM_BUY_ITEM")
+        end
         TraceBrowse("trading_house.buy_dialog", "shown", thInstance, {
             fn = "TradingHouse.BrowseComponent.OnPrimaryAction",
             dialog = "TRADING_HOUSE_CONFIRM_BUY_ITEM",
@@ -512,7 +516,7 @@ function Browse:OnPrimaryAction(thInstance)
             item = item,
         }, BETTERUI.Log and BETTERUI.Log.CATEGORY.DIALOG)
     else
-        ZO_Dialogs_ShowGamepadDialog("TRADING_HOUSE_CONFIRM_BUY_ITEM", {
+        BETTERUI.CIM.Dialogs.ShowForOwner(thInstance, "TRADING_HOUSE_CONFIRM_BUY_ITEM", {
             listingIndex = tradingHouseIndex,
             stackCount = dialogItemData.stackCount,
             price = price,

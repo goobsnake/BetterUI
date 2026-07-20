@@ -58,6 +58,10 @@ local manifestSource = read_file("BetterUI.txt")
 
 assert_contains(runtimeSource, "function TH.RegisterSceneLifecycle(instance)",
     "Trading House runtime helper owns scene lifecycle registration")
+assert_contains(runtimeSource, "cleanup.CleanupInputState(screen)",
+    "Trading House scene teardown routes through shared input ownership cleanup")
+assert_contains(runtimeSource, "cleanup.ClearSearchState(screen)",
+    "Trading House scene teardown routes through shared search ownership cleanup")
 assert_not_contains(runtimeSource, "function TH.GetTabs(",
     "Trading House runtime helper no longer exposes the dead test-only GetTabs export")
 assert_contains(runtimeSource, "---@param instance BETTERUI.TradingHouse.Class",
@@ -164,13 +168,14 @@ assert_contains(runtimeSource, "header.tabBar:Activate()",
     "Trading House activates the header carousel for full-bright selected visuals")
 assert_contains(runtimeSource, "header.tabBar:Deactivate()",
     "Trading House releases carousel keybind ownership when its scene closes")
-assert_contains(runtimeSource, "function TH.ReleaseForeignCarouselKeybinds()",
-    "Trading House explicitly purges stale foreign carousel ownership")
-assert_contains(runtimeSource, "BETTERUI.Interface.RemoveKeybindGroupFromAllStates",
-    "Trading House removes a restored Inventory carousel from saved keybind states")
-assert_contains(read_file("Modules/TradingHouse/Core/BrowseFilterDialog.lua"),
+assert_not_contains(runtimeSource, "function TH.ReleaseForeignCarouselKeybinds()",
+    "Trading House never reaches into hidden Inventory keybind ownership")
+assert_not_contains(read_file("Modules/TradingHouse/Core/BrowseFilterDialog.lua"),
     "TH.ReleaseForeignCarouselKeybinds()",
-    "Edit Filters teardown reasserts Trading House shoulder ownership")
+    "Edit Filters teardown only restores its owning Trading House scene")
+assert_contains(read_file("Modules/Inventory/Core/HeaderManager.lua"),
+    "RemoveKeybindGroupFromAllStates",
+    "Inventory owns permanent cleanup of its hidden carousel descriptor")
 assert_contains(entrySource, "local function GetTHHeaderCategories(instance)",
     "Trading House builds the LB/RB carousel from the active list only")
 assert_contains(entrySource, "activeComponent:GetCategories()",

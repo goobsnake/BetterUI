@@ -115,6 +115,9 @@ function Class:SetListSearchDirectionalInputUpdate(enabled)
             safety = safety + 1
         end
     end
+    if self.IsSceneShowing and not self:IsSceneShowing() then
+        return false
+    end
     if enabled ~= true or not self:EnsureListSearchMovementController()
         or not (DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.Activate) then
         return false
@@ -158,11 +161,16 @@ function Class:UpdateListSearchDirectionalInput()
 end
 
 function Class:EnsureHeaderKeybindsActive()
+    if self.IsSceneShowing and not self:IsSceneShowing() then
+        return false
+    end
     local tabBar = self.headerGeneric and self.headerGeneric.tabBar
     EnsureGroup(tabBar and tabBar.keybindStripDescriptor)
+    return true
 end
 
 function Class:EnterSearchMode()
+    if self.IsSceneShowing and not self:IsSceneShowing() then return false end
     if self._searchModeActive then return end
     if not (self.textSearchHeaderControl and self.textSearchHeaderFocus)
         or self.textSearchHeaderControl:IsHidden() then
@@ -188,6 +196,7 @@ function Class:EnterSearchMode()
 end
 
 function Class:MaintainListSearchFocus()
+    if self.IsSceneShowing and not self:IsSceneShowing() then return false end
     if not self._searchModeActive then return false end
     if self.list and self.list.Deactivate
         and (not self.list.IsActive or self.list:IsActive()) then
@@ -266,6 +275,7 @@ end
 
 function Class:OnListSearchTextChanged(searchText)
     self.searchQuery = searchText or ""
+    if self.IsSceneShowing and not self:IsSceneShowing() then return end
     self:RefreshList()
     self:MaintainListSearchFocus()
 end
@@ -276,7 +286,8 @@ function Class:PositionListSearchControl()
     end
     Interface.PositionSearchControl(self, {
         preset = "INVENTORY",
-        fallbackY = 1,
+        yOffset = 9,
+        fallbackY = 9,
         linkHeaderFocus = true,
     })
 end

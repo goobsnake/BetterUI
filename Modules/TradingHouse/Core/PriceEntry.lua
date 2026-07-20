@@ -566,7 +566,7 @@ function PriceEntry.ShowDigitPriceDialog(defaultPrice, minPrice, maxPrice, onCon
         end
     end
 
-    ZO_Dialogs_ShowGamepadDialog(DIGIT_PRICE_DIALOG, {
+    BETTERUI.CIM.Dialogs.ShowForOwner(TH.instance, DIGIT_PRICE_DIALOG, {
         defaultPrice = defaultPrice,
         min = minPrice,
         max = maxPrice,

@@ -337,7 +337,7 @@ function Presets.ShowSaveDialog()
     end
 
     TracePresets("trading_house.presets_dialog", "save_shown", { fn = "Presets.ShowSaveDialog" })
-    ZO_Dialogs_ShowGamepadDialog(SAVE_DIALOG_NAME, {})
+    BETTERUI.CIM.Dialogs.ShowForOwner(TH.instance, SAVE_DIALOG_NAME, {})
 end
 
 --- Registers and shows the load-preset dialog (list of saved presets).
@@ -447,5 +447,5 @@ function Presets.ShowLoadDialog()
     end
 
     TracePresets("trading_house.presets_dialog", "load_shown", { fn = "Presets.ShowLoadDialog", presetCount = #Presets.GetAll() })
-    ZO_Dialogs_ShowGamepadDialog(LOAD_DIALOG_NAME, {})
+    BETTERUI.CIM.Dialogs.ShowForOwner(TH.instance, LOAD_DIALOG_NAME, {})
 end

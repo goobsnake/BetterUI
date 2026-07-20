@@ -163,66 +163,60 @@ local function CanTHSubmitBrowseSearch()
     return true
 end
 
-local function SearchForSelectedTHItem(thInstance)
-    local data = GetTHListTargetData(thInstance)
-    local itemLink = data and data.itemLink or nil
-    if not itemLink or itemLink == "" then
-        TraceTHKeybind(thInstance, "skipped", "UI_SHORTCUT_SECONDARY", { reason = "missingItemLink" })
-        return
-    end
-
-    if TH.BrowseComponent and type(TH.BrowseComponent.SearchForItemLink) == "function" then
-        TH.BrowseComponent:SearchForItemLink(itemLink, thInstance)
-    elseif type(TH.SearchForItemLink) == "function" then
-        TH.SearchForItemLink(itemLink)
-    elseif type(thInstance.SearchForItemLink) == "function" then
-        thInstance:SearchForItemLink(itemLink)
-    elseif TRADING_HOUSE_GAMEPAD and type(TRADING_HOUSE_GAMEPAD.SearchForItemLink) == "function" then
-        TRADING_HOUSE_GAMEPAD:SearchForItemLink(itemLink)
-    else
-        TraceTHKeybind(thInstance, "skipped", "UI_SHORTCUT_QUATERNARY", { reason = "missingSearchForItemHandler" })
-        return
-    end
-    TraceTHKeybind(thInstance, "activated", "UI_SHORTCUT_QUATERNARY", { action = "searchForItem" })
-end
-
-local function OpenTHRecentSearches(thInstance)
-    local nativeTradingHouse = rawget(_G, "TRADING_HOUSE_GAMEPAD")
-    if not (nativeTradingHouse and type(nativeTradingHouse.EnterSearchHistory) == "function") then
-        TraceTHKeybind(thInstance, "skipped", "UI_SHORTCUT_QUATERNARY", {
-            reason = "missingNativeSearchHistory",
-        })
+local function ClearTHListSearch(thInstance)
+    local control = thInstance.textSearchHeaderControl
+    if not control or (control.IsHidden and control:IsHidden()) then
         return false
     end
 
-    local handoffOk = false
-    if type(TH.HandOffToNativeTradingHouse) == "function" then
-        handoffOk = TH.HandOffToNativeTradingHouse("recentSearches", {
-            interactionType = GetInteractionType and GetInteractionType() or nil,
-        })
-    elseif type(nativeTradingHouse.OpenTradingHouse) == "function" then
-        handoffOk = pcall(nativeTradingHouse.OpenTradingHouse, nativeTradingHouse)
-    end
-    if handoffOk ~= true then
-        TraceTHKeybind(thInstance, "skipped", "UI_SHORTCUT_QUATERNARY", {
-            reason = "nativeHandoffFailed",
-        })
-        return false
+    local searchMixin = BETTERUI.Interface and BETTERUI.Interface.SearchMixin
+    if searchMixin and searchMixin.CallSearchLifecycle then
+        searchMixin.CallSearchLifecycle(thInstance, "clear")
+    elseif thInstance.ClearSearchInput then
+        thInstance:ClearSearchInput()
     end
 
-    local ok, err = pcall(nativeTradingHouse.EnterSearchHistory, nativeTradingHouse)
-    if not ok then
-        if BETTERUI.Log then
-            BETTERUI.Log.Error(BETTERUI.Log.CATEGORY.ACTION, "recent searches open failed", {
-                error = tostring(err),
-            })
+    if thInstance._searchModeActive then
+        if searchMixin and searchMixin.CallSearchLifecycle then
+            searchMixin.CallSearchLifecycle(thInstance, "exit")
+        elseif thInstance.ExitSearchMode then
+            thInstance:ExitSearchMode()
         end
-        return false
+    elseif TH.RefreshCurrentTradingHouseKeybinds then
+        TH.RefreshCurrentTradingHouseKeybinds(
+            "BuildCoreKeybinds:clearSearch", "clearSearch", true)
     end
     TraceTHKeybind(thInstance, "activated", "UI_SHORTCUT_QUATERNARY", {
-        action = "recentSearches",
+        action = "clearSearch",
     })
     return true
+end
+
+local function CreateTHClearSearchKeybind(thInstance)
+    local callback = function()
+        ClearTHListSearch(thInstance)
+    end
+    local visible = function()
+        return thInstance.textSearchHeaderControl ~= nil
+    end
+    local hasText = function()
+        return thInstance.searchQuery and thInstance.searchQuery ~= ""
+    end
+    local factory = BETTERUI.CIM and BETTERUI.CIM.Keybinds
+        and BETTERUI.CIM.Keybinds.CreateClearSearchKeybind
+    if type(factory) == "function" then
+        return factory(callback, visible, hasText)
+    end
+    return {
+        alignment = KEYBIND_STRIP_ALIGN_LEFT,
+        name = GetTHRuntimeString("SI_BETTERUI_CLEAR_SEARCH", nil, "Clear Search"),
+        keybind = "UI_SHORTCUT_QUATERNARY",
+        disabledDuringSceneHiding = true,
+        visible = function()
+            return visible() and hasText()
+        end,
+        callback = callback,
+    }
 end
 
 local function CanOpenTHBrowseFilters(thInstance)
@@ -378,21 +372,6 @@ function TH.CreateScene(instance)
     return scene
 end
 
----@return nil
-function TH.ReleaseForeignCarouselKeybinds()
-    local inventory = rawget(_G, "GAMEPAD_INVENTORY")
-    local tabBar = inventory and inventory.header and inventory.header.tabBar or nil
-    local descriptor = tabBar and tabBar.keybindStripDescriptor or nil
-    if tabBar and tabBar.Deactivate then
-        tabBar:Deactivate()
-    end
-    local removeFromAllStates = BETTERUI.Interface
-        and BETTERUI.Interface.RemoveKeybindGroupFromAllStates
-    if descriptor and type(removeFromAllStates) == "function" then
-        removeFromAllStates(descriptor)
-    end
-end
-
 ---@param instance BETTERUI.TradingHouse.Class
 ---@return nil
 function TH.RegisterSceneLifecycle(instance)
@@ -405,7 +384,6 @@ function TH.RegisterSceneLifecycle(instance)
         taskManager = TH.Tasks,
         onShowing = function(screen)
             if screen.ResetListSearch then screen:ResetListSearch() end
-            TH.ReleaseForeignCarouselKeybinds()
             BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.WIDTH)
             screen:RefreshTHFooter()
             screen:RefreshList()
@@ -442,6 +420,12 @@ function TH.RegisterSceneLifecycle(instance)
             if screen.list and screen.list.Deactivate then
                 screen.list:Deactivate()
             end
+            local cleanup = BETTERUI.CIM.SceneCleanup
+            if cleanup then
+                cleanup.CleanupInputState(screen)
+                cleanup.DeactivateLists(screen)
+                cleanup.ClearSearchState(screen)
+            end
         end,
         onHidden = function(screen)
             local headerContainer = screen.header
@@ -456,6 +440,12 @@ function TH.RegisterSceneLifecycle(instance)
             local component = screen:GetActiveComponent()
             if component and component.Deactivate then
                 component:Deactivate(screen)
+            end
+            local cleanup = BETTERUI.CIM.SceneCleanup
+            if cleanup then
+                cleanup.CleanupInputState(screen)
+                cleanup.DeactivateLists(screen)
+                cleanup.ClearSearchState(screen)
             end
         end,
     }
@@ -608,31 +598,7 @@ function TH.BuildCoreKeybinds(thInstance)
                 SwitchTradingHouseMode(thInstance, 2, "UI_SHORTCUT_RIGHT_STICK")
             end,
         },
-        {
-            name = function()
-                if GetTHCurrentMode(thInstance) == MODE.BROWSE then
-                    return GetTHRuntimeString("SI_TRADING_HOUSE_SEARCH_HISTORY_TITLE", nil, "Recent Searches")
-                end
-                return GetTHRuntimeString("SI_TRADING_HOUSE_SEARCH_FROM_ITEM", nil, "Search For Item")
-            end,
-            keybind = "UI_SHORTCUT_QUATERNARY",
-            visible = function()
-                local mode = GetTHCurrentMode(thInstance)
-                if mode == MODE.BROWSE then
-                    return rawget(_G, "TRADING_HOUSE_GAMEPAD") ~= nil
-                        and type(TRADING_HOUSE_GAMEPAD.EnterSearchHistory) == "function"
-                end
-                return (mode == MODE.SELL or mode == MODE.LISTINGS)
-                    and (GetTHListTargetData(thInstance) or {}).itemLink ~= nil
-            end,
-            callback = function()
-                if GetTHCurrentMode(thInstance) == MODE.BROWSE then
-                    OpenTHRecentSearches(thInstance)
-                    return
-                end
-                SearchForSelectedTHItem(thInstance)
-            end,
-        },
+        CreateTHClearSearchKeybind(thInstance),
         {
             name = GetTHRuntimeString("SI_GAMEPAD_BACK_OPTION", nil, "Back"),
             keybind = "UI_SHORTCUT_NEGATIVE",

@@ -20,6 +20,19 @@ BETTERUI = {
     CIM = {},
 }
 
+BETTERUI.CIM.Keybinds = {
+    CreateClearSearchKeybind = function(callback, visible, hasText)
+        return {
+            name = "Clear Search",
+            keybind = "UI_SHORTCUT_QUATERNARY",
+            callback = callback,
+            visible = function()
+                return (not visible or visible()) and (not hasText or hasText())
+            end,
+        }
+    end,
+}
+
 local keybindFrame = 1
 local keybindRefreshStates = {}
 local keybindRefreshFingerprints = {}
@@ -620,23 +633,74 @@ TH.instance:SetMode(TH.MODE.BROWSE)
 
 local holdX = FindKeybind("UI_SHORTCUT_QUATERNARY")
 local holdY = FindKeybind("UI_SHORTCUT_QUINARY")
-assert_eq(holdX.name(), "Recent Searches", "Browse Hold X is native Recent Searches")
-assert_eq(holdX.visible(), true, "Browse always exposes Recent Searches")
+TH.instance.ClearSearchInput = function(self)
+    self.searchQuery = ""
+end
+TH.instance.textSearchHeaderControl = {
+    IsHidden = function() return false end,
+}
+TH.instance.searchQuery = ""
+assert_eq(holdX.name, "Clear Search", "Hold X is Clear Search")
+assert_eq(holdX.visible(), false, "Browse hides Clear Search when the list search is empty")
+TH.instance.searchQuery = "rubedite"
+assert_eq(holdX.visible(), true, "Browse shows Clear Search when the list search has text")
 holdX.callback()
-assert_eq(nativeOpenCount, 1, "Recent Searches hands off to the native Trading House")
-assert_eq(nativeSearchHistoryCount, 1, "Recent Searches enters the stock search-history section")
+assert_eq(TH.instance.searchQuery, "", "Browse Hold X clears the list search")
+assert_eq(nativeOpenCount, 0, "Clear Search never hands off to native search history")
+
+assert_eq(TH.OpenNativeSearchHistory("testRecentSearches"), true,
+    "Recent Searches helper hands off to the native Trading House")
+assert_eq(nativeOpenCount, 1, "Recent Searches helper opens the native Trading House")
+assert_eq(nativeSearchHistoryCount, 1, "Recent Searches helper enters the stock search-history section")
 TH.nativeHandoffActive = false
 TH.nativeHandoffNeedsBetterUICleanup = false
 nativeScene.showing = false
 TH.AliasSceneToBetterUI()
 
+-- A native handoff must invalidate an already-scheduled BetterUI ownership
+-- reassert, including schedulers whose callback cannot be cancelled.
+do
+    local pendingReassert
+    local savedSchedule = TH.Tasks.Schedule
+    local savedShowScene = TH.ShowScene
+    local showCalls = 0
+    TH.Tasks.Schedule = function(_, _, _, callback)
+        pendingReassert = callback
+    end
+    TH.ShowScene = function()
+        showCalls = showCalls + 1
+        return true
+    end
+    TH.ScheduleOwnershipReassert()
+    assert_eq(type(pendingReassert), "function",
+        "ownership reassert schedules a guarded callback")
+    assert_eq(TH.HandOffToNativeTradingHouse("pendingReassertTest"), true,
+        "native handoff succeeds with a pending BetterUI reassert")
+    pendingReassert()
+    assert_eq(showCalls, 0,
+        "native handoff invalidates the pending BetterUI ownership reassert")
+    TH.Tasks.Schedule = savedSchedule
+    TH.ShowScene = savedShowScene
+    TH.nativeHandoffActive = false
+    TH.nativeHandoffNeedsBetterUICleanup = false
+    nativeScene.showing = false
+    TH.AliasSceneToBetterUI()
+end
+
 TH.instance:SetMode(TH.MODE.SELL)
-TH.instance.list.targetData = { itemLink = "|H1:item:1|hItem|h" }
-assert_eq(holdX.name(), "Search For Item", "Sell Hold X remains Search For Item")
+TH.instance.searchQuery = ""
+assert_eq(holdX.visible(), false, "Sell hides Clear Search when the list search is empty")
+TH.instance.searchQuery = "motif"
+assert_eq(holdX.visible(), true, "Sell shows Clear Search when the list search has text")
+holdX.callback()
+assert_eq(TH.instance.searchQuery, "", "Sell Hold X clears the list search")
 assert_eq(holdY.visible(), false, "Sell hides the Hold Y Browse action")
 
 TH.instance:SetMode(TH.MODE.LISTINGS)
-assert_eq(holdX.name(), "Search For Item", "My Listings Hold X remains Search For Item")
+TH.instance.searchQuery = "dreugh"
+assert_eq(holdX.visible(), true, "My Listings shows Clear Search when the list search has text")
+holdX.callback()
+assert_eq(TH.instance.searchQuery, "", "My Listings Hold X clears the list search")
 assert_eq(holdY.visible(), true, "My Listings reuses the single Hold Y slot for sort")
 holdY.callback()
 assert_eq(listingSortCycleCount, 1, "My Listings Hold Y cycles listing sort")
@@ -652,8 +716,9 @@ assert_eq(TH.BrowseComponent.searchResultsCount, 1,
 assert_eq(TH.BrowseComponent.lastInstance, TH.instance,
     "search results dispatch passes the Trading House instance")
 
+local cooldownRefreshStart = KEYBIND_STRIP.updateCount
 cooldownCallback()
-assert_eq(KEYBIND_STRIP.updateCount, 1,
+assert_eq(KEYBIND_STRIP.updateCount, cooldownRefreshStart + 1,
     "cooldown callback refreshes keybind state while scene is showing")
 
 -- Same-frame global refreshes coalesce only while their state fingerprint is

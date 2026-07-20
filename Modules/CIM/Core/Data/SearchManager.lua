@@ -282,6 +282,7 @@ end
 ---@field headerOnly boolean|nil Anchor to screen.header only instead of preferring screen.headerGeneric
 ---@field titleChildNames string[]|nil Named children probed for the title container (default TitleContainer/Header)
 ---@field safeExecuteContext string|nil When set, wraps child probes in BETTERUI.CIM.SafeExecute with this context
+---@field yOffset number|nil Explicit Y offset beneath the title (default preset Y_OFFSET)
 ---@field fallbackY number|nil Fixed Y offset when no anchor parent is found (default Y_OFFSET)
 ---@field fallbackUseRightInset boolean|nil Apply RIGHT_INSET to the fallback TOPRIGHT anchor instead of 0
 ---@field linkHeaderFocus boolean|nil Register the control via ZO_GamepadGenericHeader_SetHeaderFocusControl
@@ -331,7 +332,7 @@ function BETTERUI.Interface.PositionSearchControl(screen, options)
     local searchConst = BETTERUI.CIM.SearchBar and BETTERUI.CIM.SearchBar.GetConstants
         and BETTERUI.CIM.SearchBar.GetConstants(options.preset or "BANKING")
     local xOffset = (searchConst and searchConst.X_OFFSET) or 55
-    local yOffset = (searchConst and searchConst.Y_OFFSET) or 15
+    local yOffset = options.yOffset or (searchConst and searchConst.Y_OFFSET) or 15
     local rightInset = (searchConst and searchConst.RIGHT_INSET) or -8
 
     if parentForAnchor then
