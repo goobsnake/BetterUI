@@ -347,7 +347,7 @@ function Class:BatchDestroy()
 
     if #itemsToDestroy == 0 then return end
 
-    ZO_Dialogs_ShowGamepadDialog("BETTERUI_BATCH_DESTROY_DIALOG", {
+    BETTERUI.CIM.Dialogs.ShowForOwner(self, "BETTERUI_BATCH_DESTROY_DIALOG", {
         itemCount = #itemsToDestroy,
         itemsToDestroy = itemsToDestroy,
         inventoryInstance = self,

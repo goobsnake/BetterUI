@@ -536,7 +536,8 @@ end
 function BETTERUI.Inventory.Class:Select()
 	local catTarget = BETTERUI.Inventory.Utils.SafeGetTargetData(self.categoryList)
 	if catTarget and catTarget.isBagSpaceEntry then
-		ZO_Dialogs_ShowGamepadDialog("BUY_BAG_SPACE_FROM_INVENTORY_GAMEPAD", { cost = GetNextBackpackUpgradePrice() })
+		BETTERUI.CIM.Dialogs.ShowForOwner(self, "BUY_BAG_SPACE_FROM_INVENTORY_GAMEPAD",
+			{ cost = GetNextBackpackUpgradePrice() })
 		return
 	end
 	if not catTarget or not catTarget.onClickDirection then

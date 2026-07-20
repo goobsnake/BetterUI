@@ -155,6 +155,12 @@ assert_true(sceneSource:find("ZO_InventorySlot_SetUpdateCallback") == nil,
     "InventorySceneLifecycle does not claim ESO's single inventory-slot update callback")
 assert_true(sceneSource:find("HandleInventoryStateChange%(self, oldState, newState%)") == nil,
     "InventorySceneLifecycle no longer falls back to a second local state-change orchestration path")
+assert_true(sceneSource:find("local function UnregisterInventoryRefreshCallbacks%(self%)") ~= nil,
+    "InventorySceneLifecycle centralizes callback release")
+local _, unregisterRefreshCallCount =
+    sceneSource:gsub("UnregisterInventoryRefreshCallbacks%(self%)", "")
+assert_true(unregisterRefreshCallCount >= 3,
+    "Inventory releases refresh callbacks during both HIDING and HIDDEN")
 
 local currencySource = read_file("Modules/Inventory/Settings/CurrencySettings.lua")
 assert_true(currencySource:find("local CURRENCY_DATA = %{%s*") ~= nil,

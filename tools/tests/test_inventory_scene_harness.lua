@@ -61,6 +61,10 @@ BETTERUI = {
         BatchActions = {},
         BatchConfig = {},
         Dialogs = {
+            ShowForOwner = function(_, name, data)
+                ZO_Dialogs_ShowGamepadDialog(name, data)
+                return true
+            end,
             Register = function(_, data)
                 currentDialogData = data
             end,

@@ -75,6 +75,21 @@ local function RegisterItemPreviewCallback(callbackName, callback)
 	ITEM_PREVIEW_GAMEPAD:RegisterCallback(callbackName, callback)
 end
 
+local function UnregisterInventoryRefreshCallbacks(self)
+	if ITEM_PREVIEW_GAMEPAD and ITEM_PREVIEW_GAMEPAD.UnregisterCallback
+		and self.onItemPreviewRefreshActionsCallback then
+		ITEM_PREVIEW_GAMEPAD:UnregisterCallback(
+			"RefreshActions", self.onItemPreviewRefreshActionsCallback)
+	end
+	if self._inventoryUpdateCallback and SHARED_INVENTORY
+		and SHARED_INVENTORY.UnregisterCallback then
+		SHARED_INVENTORY:UnregisterCallback("FullInventoryUpdate", self._inventoryUpdateCallback)
+		SHARED_INVENTORY:UnregisterCallback("SingleSlotInventoryUpdate", self._inventoryUpdateCallback)
+		SHARED_INVENTORY:UnregisterCallback("SingleQuestUpdate", self._inventoryUpdateCallback)
+		self._inventoryCallbacksUnregistered = true
+	end
+end
+
 local function IsKeybindGroupPresent(group)
 	return BETTERUI.Interface.HasKeybindGroup(group)
 end
@@ -322,6 +337,9 @@ local function OnSceneHiding(self)
 	if BETTERUI.Inventory and BETTERUI.Inventory._slotUpdateHookInstance == self then
 		BETTERUI.Inventory._slotUpdateHookInstance = nil
 	end
+	-- Detach refresh producers before input/keybind teardown so no HIDING-time
+	-- callback can reacquire scene-owned state.
+	UnregisterInventoryRefreshCallbacks(self)
 	if self:IsBatchProcessing() then
 		self:RequestBatchAbort()
 	end
@@ -374,18 +392,8 @@ local function OnSceneHidden(self)
 	self:ClearActiveKeybinds()
 	RemoveInventoryKeybindsForSceneExit(self, "hidden")
 
-	-- Unregister item preview callbacks
-	if ITEM_PREVIEW_GAMEPAD and self.onItemPreviewRefreshActionsCallback then
-		ITEM_PREVIEW_GAMEPAD:UnregisterCallback("RefreshActions", self.onItemPreviewRefreshActionsCallback)
-	end
-
-	-- Unregister SHARED_INVENTORY callbacks to prevent memory leaks
-	if self._inventoryUpdateCallback then
-		SHARED_INVENTORY:UnregisterCallback("FullInventoryUpdate", self._inventoryUpdateCallback)
-		SHARED_INVENTORY:UnregisterCallback("SingleSlotInventoryUpdate", self._inventoryUpdateCallback)
-		SHARED_INVENTORY:UnregisterCallback("SingleQuestUpdate", self._inventoryUpdateCallback)
-		self._inventoryCallbacksUnregistered = true
-	end
+	-- Repeat idempotently at HIDDEN for direct transitions and final authority.
+	UnregisterInventoryRefreshCallbacks(self)
 
 	ZO_SavePlayerConsoleProfile()
 

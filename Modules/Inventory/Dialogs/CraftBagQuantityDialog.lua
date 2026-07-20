@@ -366,7 +366,7 @@ function BETTERUI.Inventory.Dialogs.ShowCraftBagQuantityDialog(inventorySlot, is
         itemName = itemName,
     }))
 
-    ZO_Dialogs_ShowGamepadDialog(BETTERUI_CRAFTBAG_QUANTITY_DIALOG, {
+    BETTERUI.CIM.Dialogs.ShowForOwner(GAMEPAD_INVENTORY, BETTERUI_CRAFTBAG_QUANTITY_DIALOG, {
         bagId = bagId,
         slotIndex = slotIndex,
         sliderMin = 1,

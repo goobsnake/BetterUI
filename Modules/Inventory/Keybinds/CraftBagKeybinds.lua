@@ -552,7 +552,8 @@ function InventoryKeybinds.HandlePrimaryKeybind(self)
     end
 
     if IsBagUpgradeCategorySelected(self) then
-        ZO_Dialogs_ShowGamepadDialog("BUY_BAG_SPACE_FROM_INVENTORY_GAMEPAD", { cost = GetNextBackpackUpgradePrice() })
+        BETTERUI.CIM.Dialogs.ShowForOwner(self, "BUY_BAG_SPACE_FROM_INVENTORY_GAMEPAD",
+            { cost = GetNextBackpackUpgradePrice() })
         return true, nil, "bagUpgradeDialog"
     end
 

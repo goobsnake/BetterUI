@@ -232,6 +232,12 @@ function BETTERUI.Inventory.HookActionDialog()
                 and BETTERUI.Utils.IsInventorySceneShowing()
             local bankShowing = BETTERUI.GetModuleEnabled("Banking")
                 and BETTERUI.Utils.IsBankingSceneShowing()
+            local dialogOwner = invShowing and GAMEPAD_INVENTORY
+                or (bankShowing and BETTERUI.Banking and BETTERUI.Banking.Window)
+            if dialogOwner and BETTERUI.CIM.Dialogs.ClaimShownForOwner then
+                BETTERUI.CIM.Dialogs.ClaimShownForOwner(
+                    dialogOwner, ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+            end
 
             if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.ACTION, "Y-Action Dialog setup fired", {invShowing = invShowing, bankShowing = bankShowing}) end
             TraceInventoryActionDialog("inventory.action_dialog", "setup_before", {

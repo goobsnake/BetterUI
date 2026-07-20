@@ -36,6 +36,12 @@ BETTERUI = {
         Utils = {},
     },
     CIM = {
+        Dialogs = {
+            ShowForOwner = function(_, name, data)
+                ZO_Dialogs_ShowGamepadDialog(name, data)
+                return true
+            end,
+        },
         -- InventoryClass.lua aliases BETTERUI.CIM.DialogRestore.Log at load time
         -- (shared restore scheduler in Modules/CIM/Dialogs/DialogRestore.lua).
         DialogRestore = {

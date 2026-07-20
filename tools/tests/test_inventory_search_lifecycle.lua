@@ -146,6 +146,47 @@ do
     assert_eq(listActivations, 0, "hidden Inventory does not reactivate its item list")
 end
 
+do
+    local addedKeybinds = 0
+    local purgedKeybinds = 0
+    local deactivations = 0
+    local descriptor = {}
+    BETTERUI.Interface.HasKeybindGroup = function()
+        return false
+    end
+    BETTERUI.Interface.EnsureKeybindGroupAdded = function()
+        addedKeybinds = addedKeybinds + 1
+    end
+    BETTERUI.Interface.RemoveKeybindGroupFromAllStates = function(group)
+        if group == descriptor then
+            purgedKeybinds = purgedKeybinds + 1
+        end
+    end
+
+    local inventory = setmetatable({
+        scene = { IsShowing = function() return false end },
+        header = {
+            tabBar = {
+                active = true,
+                keybindStripDescriptor = descriptor,
+                Deactivate = function(self)
+                    self.active = false
+                    deactivations = deactivations + 1
+                end,
+            },
+        },
+    }, { __index = BETTERUI.Inventory.Class })
+
+    assert_eq(inventory:EnsureHeaderKeybindsActive(), false,
+        "hidden Inventory rejects carousel ownership")
+    assert_eq(addedKeybinds, 0,
+        "hidden Inventory cannot add its carousel keybind group")
+    assert_eq(deactivations, 1,
+        "hidden Inventory deactivates a stale active carousel")
+    assert_eq(purgedKeybinds, 1,
+        "hidden Inventory purges its carousel from saved keybind states")
+end
+
 print(string.format("\nResults: %d passed, %d failed", passed, failed))
 if failed > 0 then
     os.exit(1)

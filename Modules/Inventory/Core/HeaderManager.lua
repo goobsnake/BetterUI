@@ -173,14 +173,49 @@ local function OnLeaveHeader(self)
 end
 
 --- @param self BetterUI_InventoryClass
+--- @return boolean
+local function IsInventorySceneShowing(self)
+    if type(self.IsSceneShowing) == "function" then
+        local ok, showing = pcall(self.IsSceneShowing, self)
+        return ok and showing == true
+    end
+    local scene = self.scene
+    if scene and type(scene.IsShowing) == "function" then
+        local ok, showing = pcall(scene.IsShowing, scene)
+        return ok and showing == true
+    end
+    return false
+end
+
+--- @param self BetterUI_InventoryClass
 local function EnsureHeaderKeybindsActive(self)
     local tabBar = self.header and self.header.tabBar
-    if not tabBar then
-        return
-    end
-
-    local descriptor = tabBar.keybindStripDescriptor
+    local descriptor = tabBar and tabBar.keybindStripDescriptor or nil
     local L = BETTERUI.Log
+
+    -- Scene ownership is the boundary: a hidden screen must never acquire
+    -- shoulder navigation, including through a delayed dialog/search callback.
+    if not IsInventorySceneShowing(self) then
+        if tabBar and tabBar.active and tabBar.Deactivate then
+            tabBar:Deactivate()
+        end
+        local removeFromAllStates = BETTERUI.Interface
+            and BETTERUI.Interface.RemoveKeybindGroupFromAllStates
+        if descriptor and type(removeFromAllStates) == "function" then
+            removeFromAllStates(descriptor)
+        end
+        if L and L.TraceEvent then
+            L.TraceEvent(L.CATEGORY.KEYBIND, "inventory.header_keybinds", "skipped", {
+                reason = "sceneHidden",
+                descriptor = L.DescribeKeybindDescriptor
+                    and L.DescribeKeybindDescriptor(descriptor, "tabBar") or nil,
+            })
+        end
+        return false
+    end
+    if not tabBar then
+        return false
+    end
     -- PB-002: When an action dialog closes, KEYBIND_STRIP:PopKeybindGroupState()
     -- can restore a snapshot that no longer carries the ethereal LB/RB carousel
     -- group, while tabBar.active is left stale-true (the PARAMETRIC action dialog
@@ -226,21 +261,7 @@ local function EnsureHeaderKeybindsActive(self)
             descriptor = L.DescribeKeybindDescriptor and L.DescribeKeybindDescriptor(descriptor, "tabBar") or nil,
         })
     end
-end
-
---- @param self BetterUI_InventoryClass
---- @return boolean
-local function IsInventorySceneShowing(self)
-    if type(self.IsSceneShowing) == "function" then
-        local ok, showing = pcall(self.IsSceneShowing, self)
-        return ok and showing == true
-    end
-    local scene = self.scene
-    if scene and type(scene.IsShowing) == "function" then
-        local ok, showing = pcall(scene.IsShowing, scene)
-        return ok and showing == true
-    end
-    return false
+    return true
 end
 
 --- @param self BetterUI_InventoryClass
