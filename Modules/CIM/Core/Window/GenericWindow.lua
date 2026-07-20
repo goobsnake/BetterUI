@@ -111,6 +111,9 @@ end
 
 --- Ensures header tab bar keybinds are active.
 function BETTERUI.CIM.GenericWindow:EnsureHeaderKeybindsActive()
+    if type(self.IsSceneShowing) == "function" and not self:IsSceneShowing() then
+        return false
+    end
     if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "ensure header keybinds", {
         fn = "GenericWindow:EnsureHeaderKeybindsActive",
         main = BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(self.mainKeybindStripDescriptor, "main") or tostring(self.mainKeybindStripDescriptor),
@@ -133,6 +136,7 @@ function BETTERUI.CIM.GenericWindow:EnsureHeaderKeybindsActive()
     if self.mainKeybindStripDescriptor then
         BETTERUI.Interface.EnsureKeybindGroupAdded(self.mainKeybindStripDescriptor)
     end
+    return true
 end
 
 --- Standard keybind refresh pattern.

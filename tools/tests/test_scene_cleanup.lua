@@ -27,6 +27,17 @@ local function assert_true(value, label)
     assert_eq(value == true, true, label)
 end
 
+local function assert_contains(list, expected, label)
+    for _, value in ipairs(list) do
+        if value == expected then
+            passed = passed + 1
+            return
+        end
+    end
+    failed = failed + 1
+    print(string.format("  FAIL: %s -- missing %s", label, tostring(expected)))
+end
+
 dofile("Modules/CIM/Core/Lifecycle/SceneCleanup.lua")
 
 print("[SceneCleanup confirmation reset]")
@@ -82,6 +93,42 @@ do
     assert_eq(searchDeactivated, 1, "cleanup deactivates search focus")
     assert_eq(tabBarDeactivated, 1, "cleanup deactivates header tab bar")
     assert_true(screen.searchFocused == false, "cleanup clears search focus state")
+end
+
+do
+    local purged = {}
+    BETTERUI.Interface = {
+        RemoveKeybindGroupFromAllStates = function(group)
+            purged[#purged + 1] = group
+            return true, 1
+        end,
+    }
+    KEYBIND_STRIP = {}
+    local activeHeader = { id = "active-header" }
+    local header = { id = "header" }
+    local integrationHeader = { id = "integration-header" }
+    local search = { id = "search" }
+    local screen = {
+        isInHeaderSortMode = true,
+        _activeHeaderSortKeybindDescriptor = activeHeader,
+        headerSortKeybindDescriptor = header,
+        textSearchKeybindStripDescriptor = search,
+        _headerSortIntegration = {
+            isActive = true,
+            activeKeybindDescriptor = integrationHeader,
+        },
+    }
+
+    BETTERUI.CIM.SceneCleanup.CleanupInputState(screen)
+    BETTERUI.CIM.SceneCleanup.ClearSearchState(screen)
+    assert_contains(purged, activeHeader,
+        "hidden cleanup purges the active header descriptor from saved states")
+    assert_contains(purged, header,
+        "hidden cleanup purges the header descriptor from saved states")
+    assert_contains(purged, integrationHeader,
+        "hidden cleanup purges the integration header descriptor from saved states")
+    assert_contains(purged, search,
+        "hidden cleanup purges the search descriptor from saved states")
 end
 
 print(string.format("\nResults: %d passed, %d failed", passed, failed))

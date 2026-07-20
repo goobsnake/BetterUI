@@ -9,6 +9,39 @@ if not BETTERUI.CIM then BETTERUI.CIM = {} end
 
 BETTERUI.CIM.SceneLifecycle = {}
 
+local LIFECYCLE_DISPOSE = "__BETTERUI_SCENE_LIFECYCLE_DISPOSE"
+
+--- Returns whether an input-owning screen is currently showing. Owners without
+--- a scene contract are treated as active so non-scene widgets retain their
+--- existing behavior.
+---@param owner table|nil
+---@return boolean
+function BETTERUI.CIM.SceneLifecycle.IsOwnerShowing(owner)
+    if not owner then return true end
+    if type(owner.IsSceneShowing) == "function" then
+        local ok, showing = pcall(owner.IsSceneShowing, owner)
+        return ok and showing == true
+    end
+    local scene = owner.scene
+    if scene and type(scene.IsShowing) == "function" then
+        local ok, showing = pcall(scene.IsShowing, scene)
+        return ok and showing == true
+    end
+    return true
+end
+
+local function IsRegisteredSceneShowing(screen, scene)
+    if screen and type(screen.IsSceneShowing) == "function" then
+        local ok, showing = pcall(screen.IsSceneShowing, screen)
+        return ok and showing == true
+    end
+    if scene and type(scene.IsShowing) == "function" then
+        local ok, showing = pcall(scene.IsShowing, scene)
+        return ok and showing == true
+    end
+    return false
+end
+
 --[[
 Class: SceneLifecycleConfig
 Description: Configuration for scene lifecycle registration.
@@ -70,12 +103,42 @@ local function EnsureKeybindGroupAdded(group)
     return false
 end
 
-local function RemoveKeybindGroupIfPresent(group)
-    local removeGroup = BETTERUI.Interface and BETTERUI.Interface.RemoveKeybindGroupIfPresent
-    if removeGroup then
+local function PurgeKeybindGroup(group)
+    local interface = BETTERUI.Interface
+    local purgeGroup = interface and interface.RemoveKeybindGroupFromAllStates
+    if type(purgeGroup) == "function" then
+        return purgeGroup(group)
+    end
+    local removeGroup = interface and interface.RemoveKeybindGroupIfPresent
+    if type(removeGroup) == "function" then
         return removeGroup(group)
     end
     return false
+end
+
+local function ReleaseOwnedDialogs(screen)
+    local dialogs = BETTERUI.CIM and BETTERUI.CIM.Dialogs
+    if dialogs and type(dialogs.ReleaseOwned) == "function" then
+        BETTERUI.CIM.SafeExecute("SceneLifecycle:releaseOwnedDialogs",
+            dialogs.ReleaseOwned, screen)
+    end
+end
+
+local function PurgeKeybindGroups(groups)
+    for index, group in ipairs(groups or {}) do
+        BETTERUI.CIM.SafeExecute("SceneLifecycle:purgeKeybind", function()
+            PurgeKeybindGroup(group)
+        end)
+        if BETTERUI.Log then
+            BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "scene lifecycle purge keybind", {
+                fn = "SceneLifecycle:purgeKeybind",
+                index = index,
+                descriptor = BETTERUI.Log.DescribeKeybindDescriptor
+                    and BETTERUI.Log.DescribeKeybindDescriptor(group, "purge")
+                    or tostring(group),
+            })
+        end
+    end
 end
 
 local function BuildStateChangeHandler(screen, config)
@@ -89,6 +152,7 @@ local function BuildStateChangeHandler(screen, config)
     -- snapshot as a fallback. This prevents a mutable keybindsResolver from
     -- causing leaks or over-removal.
     local showingSnapshot = nil
+    local hidingCleanupApplied = false
 
     return function(oldState, newState)
         local sceneName = ""
@@ -98,7 +162,29 @@ local function BuildStateChangeHandler(screen, config)
         end
         if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.SCENE, "scene state changed", { scene = sceneName, state = newState }) end
 
+        if newState == LIFECYCLE_DISPOSE then
+            if showingSnapshot then
+                -- Teardown callbacks run at most once per SHOWING cycle: a scene
+                -- disposed between HIDING and HIDDEN has already run them.
+                if not hidingCleanupApplied then
+                    if config.taskManager and config.taskManager.CancelAll then
+                        BETTERUI.CIM.SafeExecute("SceneLifecycle:cancelTasksDispose",
+                            function() config.taskManager:CancelAll() end)
+                    end
+                    ReleaseOwnedDialogs(screen)
+                    if config.onHiding then
+                        BETTERUI.CIM.SafeExecute("SceneLifecycle:onHidingDispose", config.onHiding, screen)
+                    end
+                end
+                PurgeKeybindGroups(showingSnapshot)
+                showingSnapshot = nil
+                hidingCleanupApplied = true
+            end
+            return
+        end
+
         if newState == SCENE_SHOWING then
+            hidingCleanupApplied = false
             showingSnapshot = SnapshotKeybindGroups(ResolveKeybindGroups(config))
             for index, group in ipairs(showingSnapshot) do
                 if BETTERUI.Log then
@@ -117,59 +203,69 @@ local function BuildStateChangeHandler(screen, config)
                 BETTERUI.CIM.SafeExecute("SceneLifecycle:onShowing", config.onShowing, screen, wasPushed)
             end
         elseif newState == SCENE_HIDING then
-            -- Preserve the legacy static-array teardown path for late registration
-            -- that observes HIDING without having observed this scene's SHOWING.
-            -- Resolver output is never re-read here because only its SHOWING snapshot
-            -- has authoritative identity.
+            -- Preserve the authoritative SHOWING snapshot through HIDDEN. The
+            -- teardown callback runs first, then one final all-state sweep removes
+            -- anything it (or a dialog state pop) may have reacquired.
             local hidingGroups = showingSnapshot or config.keybinds or {}
-            for index, group in ipairs(hidingGroups) do
-                if BETTERUI.Log then
-                    BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "scene lifecycle remove keybind", {
-                        fn = "SceneLifecycle:hiding",
-                        scene = sceneName,
-                        index = index,
-                        descriptor = BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(group, "remove") or tostring(group),
-                    })
-                end
-                BETTERUI.CIM.SafeExecute("SceneLifecycle:removeKeybind", function() RemoveKeybindGroupIfPresent(group) end)
-            end
-            if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "scene hiding", { scene = sceneName, keybindGroups = #hidingGroups, descriptors = DescribeKeybindGroups(hidingGroups) }) end
-            showingSnapshot = nil
             if config.taskManager and config.taskManager.CancelAll then
                 BETTERUI.CIM.SafeExecute("SceneLifecycle:cancelTasks", function() config.taskManager:CancelAll() end)
             end
+            ReleaseOwnedDialogs(screen)
             if config.onHiding then
                 BETTERUI.CIM.SafeExecute("SceneLifecycle:onHiding", config.onHiding, screen)
             end
+            PurgeKeybindGroups(hidingGroups)
+            hidingCleanupApplied = true
+            if BETTERUI.Log then
+                BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "scene hiding", {
+                    scene = sceneName,
+                    keybindGroups = #hidingGroups,
+                    descriptors = DescribeKeybindGroups(hidingGroups),
+                })
+            end
         elseif newState == SCENE_HIDDEN then
-            -- Direct-HIDDEN fallback: if the scene transitions straight to HIDDEN
-            -- without HIDING, remove the SHOWING snapshot so keybinds don't leak.
-            if showingSnapshot then
-                for index, group in ipairs(showingSnapshot) do
-                    if BETTERUI.Log then
-                        BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "scene lifecycle remove keybind", {
-                            fn = "SceneLifecycle:hiddenFallback",
-                            scene = sceneName,
-                            index = index,
-                            descriptor = BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(group, "remove") or tostring(group),
-                        })
-                    end
-                    BETTERUI.CIM.SafeExecute("SceneLifecycle:removeKeybind", function() RemoveKeybindGroupIfPresent(group) end)
+            local hiddenGroups = showingSnapshot or config.keybinds or {}
+            -- Some scene managers can transition directly from SHOWING to HIDDEN.
+            -- Run the source-owned HIDING teardown exactly once before final cleanup.
+            if not hidingCleanupApplied then
+                if config.taskManager and config.taskManager.CancelAll then
+                    BETTERUI.CIM.SafeExecute("SceneLifecycle:cancelTasksDirectHidden",
+                        function() config.taskManager:CancelAll() end)
                 end
-                if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "scene hidden keybind fallback", { scene = sceneName, keybindGroups = #showingSnapshot, descriptors = DescribeKeybindGroups(showingSnapshot) }) end
-                showingSnapshot = nil
+                ReleaseOwnedDialogs(screen)
+                if config.onHiding then
+                    BETTERUI.CIM.SafeExecute("SceneLifecycle:onHidingDirectHidden", config.onHiding, screen)
+                end
+                PurgeKeybindGroups(hiddenGroups)
+                hidingCleanupApplied = true
+            elseif config.taskManager and config.taskManager.CancelAll then
+                -- Normal HIDING -> HIDDEN re-cancels in case teardown scheduled work.
+                BETTERUI.CIM.SafeExecute("SceneLifecycle:cancelTasksHidden",
+                    function() config.taskManager:CancelAll() end)
             end
-            -- Re-cancel tasks on hidden before event cleanup and user callback.
-            if config.taskManager and config.taskManager.CancelAll then
-                BETTERUI.CIM.SafeExecute("SceneLifecycle:cancelTasksHidden", function() config.taskManager:CancelAll() end)
+            if BETTERUI.Log then
+                BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "scene hidden", {
+                    scene = sceneName,
+                    eventRegistryModule = config.eventRegistryModule,
+                })
             end
-            if BETTERUI.Log then BETTERUI.Log.Info(BETTERUI.Log.CATEGORY.SCENE, "scene hidden", { scene = sceneName, eventRegistryModule = config.eventRegistryModule }) end
             if config.eventRegistryModule and BETTERUI.CIM.EventRegistry then
-                BETTERUI.CIM.SafeExecute("SceneLifecycle:unregisterEvents", function() BETTERUI.CIM.EventRegistry.UnregisterAll(config.eventRegistryModule) end)
+                BETTERUI.CIM.SafeExecute("SceneLifecycle:unregisterEvents", function()
+                    BETTERUI.CIM.EventRegistry.UnregisterAll(config.eventRegistryModule)
+                end)
             end
             if config.onHidden then
                 BETTERUI.CIM.SafeExecute("SceneLifecycle:onHidden", config.onHidden, screen)
             end
+            -- Teardown callbacks may themselves open or queue a scene-owned dialog.
+            -- HIDDEN is the final ownership boundary, so release again after every
+            -- source callback before purging any keybind states exposed by it.
+            ReleaseOwnedDialogs(screen)
+            -- HIDDEN is the final authority boundary. Purge after every callback
+            -- so delayed dialog/focus teardown cannot restore this scene into a
+            -- saved keybind state owned by the next scene.
+            PurgeKeybindGroups(hiddenGroups)
+            showingSnapshot = nil
         end
     end
 end
@@ -203,6 +299,9 @@ function BETTERUI.CIM.SceneLifecycle.Unregister(screen, scene)
     local function drop(s)
         local handle = handles[s]
         if not handle then return end
+        if handle.handler then
+            handle.handler(nil, LIFECYCLE_DISPOSE)
+        end
         if handle.scene and handle.scene.UnregisterCallback then
             handle.scene:UnregisterCallback("StateChange", handle.handler)
         end
@@ -241,7 +340,8 @@ function BETTERUI.CIM.SceneLifecycle.Register(screen, config)
     -- the bank window drives BOTH the personal and guild-bank scenes -- so the old
     -- screen-keyed guard clobbered a sibling scene's handler, silently breaking that
     -- scene's lifecycle (no OnSceneShowing -> no content/backdrop -> empty window).
-    if screen._sceneLifecycleHandles[scene] then
+    local replacingLifecycle = screen._sceneLifecycleHandles[scene] ~= nil
+    if replacingLifecycle then
         BETTERUI.CIM.SceneLifecycle.Unregister(screen, scene)
     end
 
@@ -257,5 +357,8 @@ function BETTERUI.CIM.SceneLifecycle.Register(screen, config)
         return
     end
     screen._sceneLifecycleHandles[scene] = { scene = scene, handler = stateChangeHandler }
+    if replacingLifecycle and IsRegisteredSceneShowing(screen, scene) then
+        stateChangeHandler(SCENE_HIDDEN, SCENE_SHOWING)
+    end
     return stateChangeHandler
 end

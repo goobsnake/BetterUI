@@ -7,6 +7,33 @@ local TABBAR_MOVEMENT_TYPES = (BETTERUI.CIM and BETTERUI.CIM.ListGlobals and BET
 
 BETTERUI_TabBarScrollList = BETTERUI_HorizontalParametricScrollList:Subclass()
 
+local function IsOwnerSceneShowing(owner)
+    local lifecycle = BETTERUI.CIM and BETTERUI.CIM.SceneLifecycle
+    if lifecycle and type(lifecycle.IsOwnerShowing) == "function" then
+        return lifecycle.IsOwnerShowing(owner)
+    end
+    if owner and type(owner.IsSceneShowing) == "function" then
+        local ok, showing = pcall(owner.IsSceneShowing, owner)
+        return ok and showing == true
+    end
+    local scene = owner and owner.scene
+    if scene and type(scene.IsShowing) == "function" then
+        local ok, showing = pcall(scene.IsShowing, scene)
+        return ok and showing == true
+    end
+    return true
+end
+
+local function PurgeHiddenKeybindGroup(descriptor)
+    local interface = BETTERUI.Interface
+    local purge = interface and interface.RemoveKeybindGroupFromAllStates
+    if type(purge) == "function" then
+        purge(descriptor)
+    elseif interface and type(interface.RemoveKeybindGroupIfPresent) == "function" then
+        interface.RemoveKeybindGroupIfPresent(descriptor)
+    end
+end
+
 ---@return boolean
 function BETTERUI_TabBarScrollList:ShouldWrapShoulderNavigation()
     -- Always allow wrapping so navigation cycles through all entries at
@@ -208,8 +235,16 @@ function BETTERUI_TabBarScrollList:Activate()
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
         BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.LIST, "tab bar activate")
     end
+    if not IsOwnerSceneShowing(self.parent) then
+        PurgeHiddenKeybindGroup(self.keybindStripDescriptor)
+        if self.active then
+            BETTERUI_HorizontalParametricScrollList.Deactivate(self)
+        end
+        return false
+    end
     BETTERUI.Interface.EnsureKeybindGroupAdded(self.keybindStripDescriptor)
     BETTERUI_HorizontalParametricScrollList.Activate(self)
+    return true
 end
 
 --- Deactivates the tab bar and removes keybinds.
@@ -360,6 +395,7 @@ end
 ---@param suppressFailSound boolean?
 ---@return boolean succeeded
 function BETTERUI_TabBarScrollList:MovePrevious(allowWrapping, suppressFailSound)
+    if not IsOwnerSceneShowing(self.parent) then return false end
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
         BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "tab bar move previous", { allowWrapping = allowWrapping == true })
     end
@@ -387,6 +423,7 @@ end
 ---@param suppressFailSound boolean?
 ---@return boolean succeeded
 function BETTERUI_TabBarScrollList:MoveNext(allowWrapping, suppressFailSound)
+    if not IsOwnerSceneShowing(self.parent) then return false end
     if BETTERUI.Log and BETTERUI.Log.IsActive() then
         BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.NAV, "tab bar move next", { allowWrapping = allowWrapping == true })
     end

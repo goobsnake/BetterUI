@@ -27,12 +27,19 @@ SCENE_HIDDEN = "hidden"
 -- Keybind strip mock
 local addedGroups = {}
 local removedGroups = {}
+local activeGroups = {}
+local purgedGroups = {}
 KEYBIND_STRIP = {
     AddKeybindButtonGroup = function(self, group)
         table.insert(addedGroups, group)
+        activeGroups[group] = true
+        return true
     end,
     RemoveKeybindButtonGroup = function(self, group)
+        if not activeGroups[group] then return false end
         table.insert(removedGroups, group)
+        activeGroups[group] = nil
+        return true
     end,
 }
 
@@ -42,8 +49,12 @@ BETTERUI.Interface = {
         return true
     end,
     RemoveKeybindGroupIfPresent = function(group)
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(group)
-        return true
+        return KEYBIND_STRIP:RemoveKeybindButtonGroup(group)
+    end,
+    RemoveKeybindGroupFromAllStates = function(group)
+        table.insert(purgedGroups, group)
+        local removed = KEYBIND_STRIP:RemoveKeybindButtonGroup(group)
+        return removed, removed and 1 or 0
     end,
 }
 
@@ -86,14 +97,18 @@ end
 
 -- Mock scene that captures callbacks
 local function MockScene()
-    local scene = { _callbacks = {} }
+    local scene = { _callbacks = {}, _state = SCENE_HIDDEN }
     function scene:RegisterCallback(event, fn)
         self._callbacks[event] = fn
     end
     function scene:UnregisterCallback(event, fn)
         if self._callbacks[event] == fn then self._callbacks[event] = nil end
     end
+    function scene:IsShowing()
+        return self._state == SCENE_SHOWING
+    end
     function scene:triggerStateChange(oldState, newState)
+        self._state = newState
         if self._callbacks["StateChange"] then
             self._callbacks["StateChange"](oldState, newState)
         end
@@ -104,6 +119,8 @@ end
 local function reset()
     addedGroups = {}
     removedGroups = {}
+    activeGroups = {}
+    purgedGroups = {}
     BETTERUI.CIM.EventRegistry._unregisteredModules = {}
 end
 
@@ -200,7 +217,7 @@ BETTERUI.CIM.SceneLifecycle.Register(screen5, {
     taskManager = taskManager,
 })
 scene5:triggerStateChange(SCENE_SHOWING, SCENE_HIDING)
-assert_equal(1, #removedGroups, "Keybind group removed on hiding")
+assert_equal(1, #purgedGroups, "Keybind group receives an all-state purge on hiding")
 assert_true(tasksCancelled, "Tasks cancelled on hiding")
 
 -- Test 6: SCENE_HIDING calls onHiding
@@ -387,6 +404,116 @@ do
     scene14:triggerStateChange(SCENE_SHOWING, SCENE_HIDING)
     assert_equal(2, #removedGroups, "final HIDING removes exactly one group")
     assert_equal(groupB, removedGroups[2], "final HIDING removes group B, not A again")
+end
+
+-- Test 15: HIDING performs its authoritative all-state purge after onHiding,
+-- so teardown callbacks cannot accidentally reacquire scene keybinds.
+print("\nTest: HIDING purges keybinds after teardown callbacks")
+reset()
+do
+    local scene15 = MockScene()
+    local screen15 = { scene = scene15 }
+    local group15 = { name = "reacquiredDuringHiding" }
+    BETTERUI.CIM.SceneLifecycle.Register(screen15, {
+        keybinds = { group15 },
+        onHiding = function()
+            BETTERUI.Interface.EnsureKeybindGroupAdded(group15)
+        end,
+    })
+    scene15:triggerStateChange(SCENE_HIDDEN, SCENE_SHOWING)
+    scene15:triggerStateChange(SCENE_SHOWING, SCENE_HIDING)
+    assert_equal(false, activeGroups[group15] == true,
+        "HIDING callback cannot leave its scene keybind active")
+    assert_equal(group15, purgedGroups[#purgedGroups],
+        "HIDING uses the all-state purge helper for the owned group")
+end
+
+-- Test 16: HIDDEN runs a final purge after onHidden. Dialog/keybind state pops
+-- and late cleanup callbacks therefore cannot resurrect the hidden scene.
+print("\nTest: HIDDEN performs a final post-callback all-state purge")
+reset()
+do
+    local scene16 = MockScene()
+    local screen16 = { scene = scene16 }
+    local group16 = { name = "reacquiredDuringHidden" }
+    BETTERUI.CIM.SceneLifecycle.Register(screen16, {
+        keybinds = { group16 },
+        onHidden = function()
+            BETTERUI.Interface.EnsureKeybindGroupAdded(group16)
+        end,
+    })
+    scene16:triggerStateChange(SCENE_HIDDEN, SCENE_SHOWING)
+    scene16:triggerStateChange(SCENE_SHOWING, SCENE_HIDDEN)
+    assert_equal(false, activeGroups[group16] == true,
+        "HIDDEN callback cannot leave its scene keybind active")
+    assert_equal(group16, purgedGroups[#purgedGroups],
+        "HIDDEN finalizes ownership with an all-state purge")
+end
+
+-- Test 17: direct SHOWING to HIDDEN runs the HIDING teardown exactly once.
+print("\nTest: direct HIDDEN runs HIDING teardown exactly once")
+reset()
+do
+    local scene17 = MockScene()
+    local screen17 = { scene = scene17 }
+    local hidingCalls = 0
+    local hiddenCalls = 0
+    local releasedDialogOwners = 0
+    BETTERUI.CIM.Dialogs = {
+        ReleaseOwned = function(owner)
+            if owner == screen17 then releasedDialogOwners = releasedDialogOwners + 1 end
+        end,
+    }
+    BETTERUI.CIM.SceneLifecycle.Register(screen17, {
+        onHiding = function() hidingCalls = hidingCalls + 1 end,
+        onHidden = function() hiddenCalls = hiddenCalls + 1 end,
+    })
+    scene17:triggerStateChange(SCENE_HIDDEN, SCENE_SHOWING)
+    scene17:triggerStateChange(SCENE_SHOWING, SCENE_HIDDEN)
+    assert_equal(1, hidingCalls, "direct HIDDEN invokes onHiding once")
+    assert_equal(1, hiddenCalls, "direct HIDDEN invokes onHidden once")
+    assert_equal(2, releasedDialogOwners,
+        "direct HIDDEN releases scene-owned dialogs before and after teardown callbacks")
+    BETTERUI.CIM.Dialogs = nil
+end
+
+-- Test 18: replacing a visible scene lifecycle disposes old ownership and
+-- synchronizes the replacement handler to the current visible state.
+print("\nTest: visible re-registration transfers lifecycle ownership")
+reset()
+do
+    local scene18 = MockScene()
+    local screen18 = { scene = scene18 }
+    local groupA = { name = "registeredA" }
+    local groupB = { name = "registeredB" }
+    BETTERUI.CIM.SceneLifecycle.Register(screen18, { keybinds = { groupA } })
+    scene18:triggerStateChange(SCENE_HIDDEN, SCENE_SHOWING)
+    BETTERUI.CIM.SceneLifecycle.Register(screen18, { keybinds = { groupB } })
+    assert_equal(false, activeGroups[groupA] == true,
+        "re-registration purges the previous visible lifecycle group")
+    assert_equal(true, activeGroups[groupB] == true,
+        "replacement lifecycle immediately acquires its visible group")
+end
+
+-- Test 19: disposing between HIDING and HIDDEN must not re-run teardown
+-- callbacks that the HIDING transition already executed.
+print("\nTest: dispose after HIDING runs teardown exactly once")
+reset()
+do
+    local scene19 = MockScene()
+    local screen19 = { scene = scene19 }
+    local hidingCalls = 0
+    local group19 = { name = "disposedAfterHiding" }
+    BETTERUI.CIM.SceneLifecycle.Register(screen19, {
+        keybinds = { group19 },
+        onHiding = function() hidingCalls = hidingCalls + 1 end,
+    })
+    scene19:triggerStateChange(SCENE_HIDDEN, SCENE_SHOWING)
+    scene19:triggerStateChange(SCENE_SHOWING, SCENE_HIDING)
+    BETTERUI.CIM.SceneLifecycle.Unregister(screen19, scene19)
+    assert_equal(1, hidingCalls, "dispose after HIDING does not re-run onHiding")
+    assert_equal(false, activeGroups[group19] == true,
+        "disposed lifecycle leaves no active keybind group")
 end
 
 -- ============================================================================

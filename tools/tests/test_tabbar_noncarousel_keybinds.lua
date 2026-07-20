@@ -4,6 +4,14 @@ Purpose: Regression coverage for shared tab bar shoulder navigation wrapping.
 ]]
 
 BETTERUI = {
+    Interface = {
+        ensured = 0,
+        EnsureKeybindGroupAdded = function()
+            BETTERUI.Interface.ensured = BETTERUI.Interface.ensured + 1
+        end,
+        RemoveKeybindGroupIfPresent = function() end,
+        RemoveKeybindGroupFromAllStates = function() end,
+    },
     CIM = {
         CONST = {
             CAROUSEL = {
@@ -31,6 +39,14 @@ function BETTERUI_HorizontalParametricScrollList:Subclass()
     setmetatable(cls, { __index = self })
     return cls
 end
+function BETTERUI_HorizontalParametricScrollList.Activate(self)
+    self.baseActivateCalls = (self.baseActivateCalls or 0) + 1
+    self.active = true
+end
+function BETTERUI_HorizontalParametricScrollList.Deactivate(self)
+    self.baseDeactivateCalls = (self.baseDeactivateCalls or 0) + 1
+    self.active = false
+end
 
 local function assertEq(actual, expected, message)
     if actual ~= expected then
@@ -39,6 +55,24 @@ local function assertEq(actual, expected, message)
 end
 
 dofile("Modules/CIM/Lists/TabBarScrollList.lua")
+
+do
+    BETTERUI.Interface.ensured = 0
+    local hiddenOwner = {
+        IsSceneShowing = function() return false end,
+    }
+    local tabBar = setmetatable({
+        parent = hiddenOwner,
+        keybindStripDescriptor = { id = "hidden-carousel" },
+    }, { __index = BETTERUI_TabBarScrollList })
+
+    assertEq(tabBar:Activate(), false,
+        "hidden scene tab bar rejects input activation")
+    assertEq(BETTERUI.Interface.ensured, 0,
+        "hidden scene tab bar cannot add its keybind group")
+    assertEq(tabBar.baseActivateCalls, nil,
+        "hidden scene tab bar cannot activate directional input")
+end
 
 do
     local lastAllowWrapping = nil

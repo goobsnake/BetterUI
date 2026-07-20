@@ -8,12 +8,62 @@ Purpose: Shared scene cleanup utilities to ensure proper DIRECTIONAL_INPUT relea
 BETTERUI.CIM = BETTERUI.CIM or {}
 BETTERUI.CIM.SceneCleanup = {}
 
-local function RemoveKeybindGroupIfPresent(descriptor)
-    local removeGroup = BETTERUI.Interface and BETTERUI.Interface.RemoveKeybindGroupIfPresent
-    if removeGroup then
+local function PurgeKeybindGroup(descriptor)
+    if not descriptor then return false end
+    local interface = BETTERUI.Interface
+    local purgeGroup = interface and interface.RemoveKeybindGroupFromAllStates
+    if type(purgeGroup) == "function" then
+        return purgeGroup(descriptor)
+    end
+    local removeGroup = interface and interface.RemoveKeybindGroupIfPresent
+    if type(removeGroup) == "function" then
         return removeGroup(descriptor)
     end
     return false
+end
+
+local function PurgeKeybindGroups(groups)
+    for _, descriptor in ipairs(groups or {}) do
+        PurgeKeybindGroup(descriptor)
+    end
+end
+
+-- This is the final ownership sweep for hidden scenes. It intentionally covers
+-- every conventional descriptor field used by BetterUI screens plus tab/header
+-- integration state, including groups parked in saved keybind-strip states.
+local function PurgeScreenKeybindOwnership(screen, extraGroups)
+    if not screen then return end
+    local seen = {}
+    local function PurgeOnce(descriptor)
+        if descriptor and not seen[descriptor] then
+            seen[descriptor] = true
+            PurgeKeybindGroup(descriptor)
+        end
+    end
+
+    PurgeOnce(screen.coreKeybinds)
+    PurgeOnce(screen.mainKeybindStripDescriptor)
+    PurgeOnce(screen.activeKeybindDescriptor)
+    PurgeOnce(screen.textSearchKeybindStripDescriptor)
+    PurgeOnce(screen.withdrawDepositKeybinds)
+    PurgeOnce(screen.currencyKeybinds)
+    PurgeOnce(screen.currencySelectorKeybinds)
+    PurgeOnce(screen._activeHeaderSortKeybindDescriptor)
+    PurgeOnce(screen.headerSortKeybindDescriptor)
+
+    local function PurgeTabBar(header)
+        local tabBar = header and header.tabBar
+        PurgeOnce(tabBar and tabBar.keybindStripDescriptor)
+    end
+    PurgeTabBar(screen.headerGeneric)
+    PurgeTabBar(screen.header)
+
+    local integration = screen._headerSortIntegration
+    if integration then
+        PurgeOnce(integration.activeKeybindDescriptor)
+        PurgeKeybindGroups(integration.suspendedKeybindGroups)
+    end
+    PurgeKeybindGroups(extraGroups)
 end
 
 --- Cleans up all input-related state when a scene is hidden.
@@ -62,11 +112,11 @@ function BETTERUI.CIM.SceneCleanup.CleanupInputState(screen)
     end
     -- Remove sort keybinds if they were added (safety net)
     if screen._activeHeaderSortKeybindDescriptor and KEYBIND_STRIP then
-        RemoveKeybindGroupIfPresent(screen._activeHeaderSortKeybindDescriptor)
+        PurgeKeybindGroup(screen._activeHeaderSortKeybindDescriptor)
         screen._activeHeaderSortKeybindDescriptor = nil
     end
     if screen.headerSortKeybindDescriptor and KEYBIND_STRIP then
-        RemoveKeybindGroupIfPresent(screen.headerSortKeybindDescriptor)
+        PurgeKeybindGroup(screen.headerSortKeybindDescriptor)
         -- Symmetric with _activeHeaderSortKeybindDescriptor above: clear the reference
         -- after removal so a stale descriptor cannot dangle past scene exit.
         screen.headerSortKeybindDescriptor = nil
@@ -87,7 +137,8 @@ function BETTERUI.CIM.SceneCleanup.CleanupInputState(screen)
             suspendedGroupsDropped = BETTERUI.Log.CountKeybindDescriptors and BETTERUI.Log.CountKeybindDescriptors(headerSortIntegrationState.suspendedKeybindGroups) or 0,
         }) end
         headerSortIntegrationState.isActive = false
-        RemoveKeybindGroupIfPresent(headerSortIntegrationState.activeKeybindDescriptor)
+        PurgeKeybindGroup(headerSortIntegrationState.activeKeybindDescriptor)
+        PurgeKeybindGroups(headerSortIntegrationState.suspendedKeybindGroups)
         headerSortIntegrationState.activeKeybindDescriptor = nil
         headerSortIntegrationState.suspendedKeybindGroups = nil
     end
@@ -166,6 +217,10 @@ function BETTERUI.CIM.SceneCleanup.CleanupInputState(screen)
     if BETTERUI.CIM.HeaderNavigation and BETTERUI.CIM.HeaderNavigation.CancelPending then
         BETTERUI.CIM.HeaderNavigation.CancelPending(screen)
     end
+
+    -- Run last: cleanup callbacks above may remove a dialog state and expose a
+    -- saved group. A hidden scene must own no live or saved keybind state.
+    PurgeScreenKeybindOwnership(screen, suspendedGroupsBeforeCleanup)
 end
 
 --- Deactivates all list controls to release DIRECTIONAL_INPUT.
@@ -229,22 +284,20 @@ function BETTERUI.CIM.SceneCleanup.ClearSearchState(screen)
         end
     end
 
-    -- Remove search keybinds if present
-    if screen.textSearchKeybindStripDescriptor and KEYBIND_STRIP then
-        RemoveKeybindGroupIfPresent(screen.textSearchKeybindStripDescriptor)
-    end
-
     if callSearchLifecycle then
         callSearchLifecycle(screen, "exit")
         callSearchLifecycle(screen, "clear")
-        return
+    else
+        if screen.ExitSearchMode then
+            screen:ExitSearchMode()
+        end
+
+        if screen.ClearSearchInput then
+            screen:ClearSearchInput()
+        end
     end
 
-    if screen.ExitSearchMode then
-        screen:ExitSearchMode()
-    end
-
-    if screen.ClearSearchInput then
-        screen:ClearSearchInput()
-    end
+    -- Search exit callbacks can restore their scene keybinds. Enforce hidden
+    -- ownership after those callbacks have finished.
+    PurgeScreenKeybindOwnership(screen)
 end

@@ -45,6 +45,14 @@ assert_true(registrySource:find("ESO_Dialogs[", 1, true) ~= nil,
     "DialogRegistry owns raw ESO_Dialogs table access")
 assert_true(registrySource:find("dialog ownership changed before re-register", 1, true) == nil,
     "DialogRegistry does not emit a duplicate secondary ownership warning")
+assert_true(registrySource:find("function BETTERUI.CIM.Dialogs.ShowForOwner", 1, true) ~= nil,
+    "DialogRegistry tracks dialogs against their scene owner")
+assert_true(registrySource:find("function BETTERUI.CIM.Dialogs.ReleaseOwned", 1, true) ~= nil,
+    "DialogRegistry exposes source-owned dialog teardown")
+assert_true(registrySource:find("function BETTERUI.CIM.Dialogs.ClaimShownForOwner", 1, true) ~= nil,
+    "DialogRegistry can claim dialogs opened by ESOUI helper functions")
+assert_true(registrySource:find("ZO_Dialogs_ReleaseAllDialogsOfName", 1, true) ~= nil,
+    "DialogRegistry releases displayed and queued dialogs through ESOUI's filtered API")
 
 for _, path in ipairs(moduleFiles) do
     local source = read_file(path)

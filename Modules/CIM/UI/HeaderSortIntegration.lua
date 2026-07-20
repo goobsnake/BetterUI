@@ -76,6 +76,43 @@ local function HasKeybindGroup(descriptor)
     return type(hasGroup) == "function" and hasGroup(descriptor) == true
 end
 
+local function IsOwnerSceneShowing(owner)
+    local lifecycle = BETTERUI.CIM and BETTERUI.CIM.SceneLifecycle
+    if lifecycle and type(lifecycle.IsOwnerShowing) == "function" then
+        return lifecycle.IsOwnerShowing(owner)
+    end
+    if owner and type(owner.IsSceneShowing) == "function" then
+        local ok, showing = pcall(owner.IsSceneShowing, owner)
+        return ok and showing == true
+    end
+    local scene = owner and owner.scene
+    if scene and type(scene.IsShowing) == "function" then
+        local ok, showing = pcall(scene.IsShowing, scene)
+        return ok and showing == true
+    end
+    return true
+end
+
+local function PurgeKeybindGroup(descriptor)
+    if not descriptor then return end
+    local interface = BETTERUI.Interface
+    local purge = interface and interface.RemoveKeybindGroupFromAllStates
+    if type(purge) == "function" then
+        purge(descriptor)
+        return
+    end
+    local remove = interface and interface.RemoveKeybindGroupIfPresent
+    if type(remove) == "function" then
+        remove(descriptor)
+    end
+end
+
+local function PurgeKeybindGroups(groups)
+    for _, descriptor in ipairs(groups or {}) do
+        PurgeKeybindGroup(descriptor)
+    end
+end
+
 ---@param options BetterUIHeaderSortInstallOptions|nil
 ---@return BetterUIHeaderSortControllerContract
 local function NormalizeControllerContract(options)
@@ -446,6 +483,17 @@ function HeaderSortIntegration.EnterHeaderMode(integration)
     end
 
     local owner = integration.owner
+    if not IsOwnerSceneShowing(owner) then
+        if BETTERUI.Log then
+            BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.SORT, "header sort enter skipped", {
+                fn = "HeaderSortIntegration.EnterHeaderMode",
+                reason = "sceneHidden",
+                scene = DescribeOwnerScene(owner),
+            })
+        end
+        return false
+    end
+
     local navigationSuspended = false
     if integration.navigation.deactivate then
         integration.navigation.deactivate(owner)
@@ -598,6 +646,8 @@ function HeaderSortIntegration.ExitHeaderMode(integration)
 
     local owner = integration.owner
     local controller = integration.controller or ResolveController(integration)
+    local ownerShowing = IsOwnerSceneShowing(owner)
+    local activeDescriptor = integration.activeKeybindDescriptor
 
     integration.isActive = false
     owner.isInHeaderSortMode = false
@@ -606,11 +656,17 @@ function HeaderSortIntegration.ExitHeaderMode(integration)
         controller:ExitHeaderMode()
     end
 
-    PlaySound(SOUNDS.GAMEPAD_MENU_BACK)
+    if ownerShowing then
+        PlaySound(SOUNDS.GAMEPAD_MENU_BACK)
+    end
 
-    if integration.activeKeybindDescriptor then
-        BETTERUI.Interface.RemoveKeybindGroupIfPresent(integration.activeKeybindDescriptor)
-        if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "header sort keybind removed", { fn = "HeaderSortIntegration.ExitHeaderMode", descriptor = DescribeDescriptor(integration.activeKeybindDescriptor, "header"), scene = DescribeOwnerScene(owner) }) end
+    if activeDescriptor then
+        if ownerShowing then
+            BETTERUI.Interface.RemoveKeybindGroupIfPresent(activeDescriptor)
+        else
+            PurgeKeybindGroup(activeDescriptor)
+        end
+        if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "header sort keybind removed", { fn = "HeaderSortIntegration.ExitHeaderMode", descriptor = DescribeDescriptor(activeDescriptor, "header"), scene = DescribeOwnerScene(owner) }) end
         integration.activeKeybindDescriptor = nil
     end
 
@@ -620,6 +676,23 @@ function HeaderSortIntegration.ExitHeaderMode(integration)
     integration.suspendedKeybindGroups = nil
     local restoreGroups = BETTERUI.Interface and BETTERUI.Interface.RestoreKeybindGroups
     local mainDescriptor = integration.keybinds and integration.keybinds.mainDescriptor
+
+    if not ownerShowing then
+        -- Hidden owners may clear logical mode state, but they must never
+        -- reactivate navigation, lists, or any live/saved keybind group.
+        owner._reactivateTabBarAfterHeaderSort = false
+        integration.suspendedList = nil
+        integration.reactivateListAfterHeaderSort = false
+        if integration.callbacks.onExitHeaderMode then
+            BETTERUI.CIM.SafeExecute("HeaderSortIntegration:onExitHeaderMode", integration.callbacks.onExitHeaderMode, owner, controller)
+        end
+        PurgeKeybindGroup(activeDescriptor)
+        PurgeKeybindGroups(suspendedGroups)
+        PurgeKeybindGroup(mainDescriptor)
+        PurgeKeybindGroups(integration.keybinds and integration.keybinds.ownedDescriptors)
+        return true
+    end
+
     local mainRestoredDuringExit = false
     if suspendedGroups and mainDescriptor then
         for _, suspendedGroup in ipairs(suspendedGroups) do

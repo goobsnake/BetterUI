@@ -257,6 +257,79 @@ function BETTERUI.CIM.Dialogs.Show(dialogName, data)
     TraceDialog("dialog.show", "after", { dialog = dialogName, method = method, shown = method ~= "missing" })
 end
 
+local DIALOG_OWNER_TOKEN_KEY = "_betteruiDialogOwnerToken"
+
+local function TrackOwnedDialogData(owner, dialogName, data)
+    if not (owner and type(data) == "table") then return false end
+    local token = {}
+    data[DIALOG_OWNER_TOKEN_KEY] = token
+    owner._betteruiOwnedDialogs = owner._betteruiOwnedDialogs or {}
+    local tokens = owner._betteruiOwnedDialogs[dialogName]
+    if not tokens then
+        tokens = {}
+        owner._betteruiOwnedDialogs[dialogName] = tokens
+    end
+    tokens[token] = true
+    return true
+end
+
+--- Shows a gamepad dialog and records exactly which displayed/queued instance
+--- belongs to the scene owner. The token is later used as ESOUI's release filter,
+--- so cleanup cannot close a same-named dialog opened by another scene.
+---@param owner table|nil
+---@param dialogName string
+---@param data table|nil
+---@param textParams table|nil
+---@return boolean
+function BETTERUI.CIM.Dialogs.ShowForOwner(owner, dialogName, data, textParams)
+    if type(ZO_Dialogs_ShowGamepadDialog) ~= "function" then
+        return false
+    end
+    data = type(data) == "table" and data or {}
+    TrackOwnedDialogData(owner, dialogName, data)
+    ZO_Dialogs_ShowGamepadDialog(dialogName, data, textParams)
+    return true
+end
+
+--- Claims a dialog displayed by an ESOUI helper that does not accept BetterUI's
+--- owner wrapper. Only the currently shown named dialog is tagged.
+---@param owner table|nil
+---@param dialogName string
+---@return boolean
+function BETTERUI.CIM.Dialogs.ClaimShownForOwner(owner, dialogName)
+    if not (owner and type(ZO_Dialogs_FindDialog) == "function") then
+        return false
+    end
+    local dialog = ZO_Dialogs_FindDialog(dialogName)
+    if not dialog then return false end
+    if type(dialog.data) ~= "table" then
+        dialog.data = {}
+    end
+    return TrackOwnedDialogData(owner, dialogName, dialog.data)
+end
+
+--- Releases only dialog instances previously shown for this owner, including
+--- queued instances, using ESOUI's filter contract.
+---@param owner table|nil
+---@return boolean
+function BETTERUI.CIM.Dialogs.ReleaseOwned(owner)
+    local owned = owner and owner._betteruiOwnedDialogs
+    if type(owned) ~= "table" then return false end
+
+    for dialogName, tokens in pairs(owned) do
+        local function IsOwnedDialogData(data)
+            return type(data) == "table" and tokens[data[DIALOG_OWNER_TOKEN_KEY]] == true
+        end
+        if type(ZO_Dialogs_ReleaseAllDialogsOfName) == "function" then
+            ZO_Dialogs_ReleaseAllDialogsOfName(dialogName, IsOwnedDialogData)
+        elseif type(ZO_Dialogs_ReleaseDialog) == "function" then
+            ZO_Dialogs_ReleaseDialog(dialogName, false, IsOwnedDialogData)
+        end
+    end
+    owner._betteruiOwnedDialogs = nil
+    return true
+end
+
 ---@param label string
 ---@param actionId string
 ---@return table

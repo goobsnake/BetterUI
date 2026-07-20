@@ -67,6 +67,11 @@ assert_true(typesSource:find('---@class BetterUIHeaderSortInstallOptions') ~= ni
 assert_true(typesSource:find('---@class BetterUIHeaderSortIntegration') ~= nil,
     "Types defines the shared header sort integration type")
 
+local genericWindow = read_file("Modules/CIM/Core/Window/GenericWindow.lua")
+assert_true(genericWindow:find(
+    'if type%(self%.IsSceneShowing%) == "function" and not self:IsSceneShowing%(%) then') ~= nil,
+    "shared windows refuse to acquire keybinds while their scene is hidden")
+
 local developerDebug = read_file("Modules/CIM/Core/Diagnostics/DeveloperDebug.lua")
 assert_true(developerDebug:find("BETTERUI%.CIM%.Debug = %{%}") ~= nil,
     "DeveloperDebug initializes the CIM debug table")
@@ -217,6 +222,14 @@ assert_true(headerSortIntegration:find("function HeaderSortIntegration%.PeekCont
     "HeaderSortIntegration exposes side-effect-free controller peek semantics")
 assert_true(headerSortIntegration:find("return HeaderSortIntegration%.PeekController%(owner%)") ~= nil,
     "HeaderSortIntegration getter delegates to side-effect-free peek behavior")
+
+local unifiedScreen = read_file("Modules/CIM/Core/Window/UnifiedScreen.lua")
+local _, hiddenOwnerGuardCount = unifiedScreen:gsub("if not IsSceneOwnerShowing%(self%) then", "")
+assert_true(hiddenOwnerGuardCount >= 5,
+    "UnifiedScreen blocks every keybind acquisition and restoration path while hidden")
+assert_true(unifiedScreen:find("PurgeKeybindGroup%(self%.activeKeybindDescriptor%)") ~= nil
+    and unifiedScreen:find("PurgeKeybindGroup%(self%.searchKeybindDescriptor%)") ~= nil,
+    "UnifiedScreen purges active and search ownership from every keybind state")
 
 local safeExecute = read_file("Modules/CIM/Core/Diagnostics/SafeExecute.lua")
 assert_true(safeExecute:find("function BETTERUI%.CIM%.TryResolve") == nil,

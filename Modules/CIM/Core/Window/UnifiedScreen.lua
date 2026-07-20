@@ -25,6 +25,34 @@ BETTERUI.CIM.UnifiedScreen = BETTERUI_Gamepad_ParametricList_Screen:Subclass()
 -- reassignment of UnifiedFooter.MODE is always observed. See tribal-knowledge.md.
 local UnifiedFooter = BETTERUI.CIM.UnifiedFooter
 
+local function IsSceneOwnerShowing(owner)
+    local lifecycle = BETTERUI.CIM and BETTERUI.CIM.SceneLifecycle
+    if lifecycle and type(lifecycle.IsOwnerShowing) == "function" then
+        return lifecycle.IsOwnerShowing(owner)
+    end
+    if owner and type(owner.IsSceneShowing) == "function" then
+        local ok, showing = pcall(owner.IsSceneShowing, owner)
+        return ok and showing == true
+    end
+    local scene = owner and owner.scene
+    if scene and type(scene.IsShowing) == "function" then
+        local ok, showing = pcall(scene.IsShowing, scene)
+        return ok and showing == true
+    end
+    return true
+end
+
+local function PurgeKeybindGroup(descriptor)
+    if not descriptor then return end
+    local interface = BETTERUI.Interface
+    local purge = interface and interface.RemoveKeybindGroupFromAllStates
+    if type(purge) == "function" then
+        purge(descriptor)
+    elseif interface and type(interface.RemoveKeybindGroupIfPresent) == "function" then
+        interface.RemoveKeybindGroupIfPresent(descriptor)
+    end
+end
+
 --- Creates a new UnifiedScreen instance.
 ---@param ... any
 ---@return BetterUIUnifiedScreen
@@ -106,6 +134,12 @@ function BETTERUI.CIM.UnifiedScreen:SetActiveKeybinds(keybindDescriptor)
         same = self.activeKeybindDescriptor == keybindDescriptor,
         headerSortMode = self.isInHeaderSortMode == true,
     }) end
+    if not IsSceneOwnerShowing(self) then
+        PurgeKeybindGroup(self.activeKeybindDescriptor)
+        PurgeKeybindGroup(keybindDescriptor)
+        self.activeKeybindDescriptor = nil
+        return false
+    end
     -- Skip keybind changes if in header sort mode to preserve header mode keybinds
     if self.isInHeaderSortMode then
         if BETTERUI.Log then BETTERUI.Log.Debug(BETTERUI.Log.CATEGORY.KEYBIND, "set active keybinds skipped", { fn = "UnifiedScreen:SetActiveKeybinds", reason = "headerSortMode" }) end
@@ -133,6 +167,10 @@ function BETTERUI.CIM.UnifiedScreen:RefreshActiveKeybinds()
         descriptor = BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(self.activeKeybindDescriptor, "active") or tostring(self.activeKeybindDescriptor),
         headerSortMode = self.isInHeaderSortMode == true,
     }) end
+    if not IsSceneOwnerShowing(self) then
+        PurgeKeybindGroup(self.activeKeybindDescriptor)
+        return false
+    end
     -- Skip refreshing active keybinds if in header sort mode
     if self.isInHeaderSortMode then
         return
@@ -150,8 +188,8 @@ function BETTERUI.CIM.UnifiedScreen:ClearActiveKeybinds()
         active = BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(self.activeKeybindDescriptor, "active") or tostring(self.activeKeybindDescriptor),
         search = BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(self.searchKeybindDescriptor, "search") or tostring(self.searchKeybindDescriptor),
     }) end
-    BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.activeKeybindDescriptor)
-    BETTERUI.Interface.RemoveKeybindGroupIfPresent(self.searchKeybindDescriptor)
+    PurgeKeybindGroup(self.activeKeybindDescriptor)
+    PurgeKeybindGroup(self.searchKeybindDescriptor)
     self.activeKeybindDescriptor = nil
     -- Reset search mode so the next EnterSearchMode is not a no-op for
     -- subclasses whose teardown does not route through SceneCleanup.
@@ -166,6 +204,11 @@ function BETTERUI.CIM.UnifiedScreen:RefreshKeybinds()
         descriptor = BETTERUI.Log.DescribeKeybindDescriptor and BETTERUI.Log.DescribeKeybindDescriptor(self.activeKeybindDescriptor, "active") or tostring(self.activeKeybindDescriptor),
         headerSortMode = self.isInHeaderSortMode == true,
     }) end
+    if not IsSceneOwnerShowing(self) then
+        PurgeKeybindGroup(self.activeKeybindDescriptor)
+        PurgeKeybindGroup(self.searchKeybindDescriptor)
+        return false
+    end
     -- Block keybind refresh during header sort mode to preserve header mode keybinds
     if self.isInHeaderSortMode then
         return
@@ -180,7 +223,13 @@ end
 
 --- Activates search mode keybinds and state.
 function BETTERUI.CIM.UnifiedScreen:EnterSearchMode()
-    if self._searchModeActive then return end
+    if not IsSceneOwnerShowing(self) then
+        self._searchModeActive = false
+        PurgeKeybindGroup(self.searchKeybindDescriptor)
+        PurgeKeybindGroup(self.activeKeybindDescriptor)
+        return false
+    end
+    if self._searchModeActive then return false end
     self._searchModeActive = true
 
     if self.searchKeybindDescriptor and KEYBIND_STRIP then
@@ -191,12 +240,20 @@ function BETTERUI.CIM.UnifiedScreen:EnterSearchMode()
         BETTERUI.Interface.EnsureKeybindGroupAdded(self.searchKeybindDescriptor)
     end
     if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "search mode", { active = self._searchModeActive }) end
+    return true
 end
 
 --- Deactivates search mode and restores main keybinds.
 function BETTERUI.CIM.UnifiedScreen:ExitSearchMode()
-    if not self._searchModeActive then return end
+    local wasActive = self._searchModeActive == true
     self._searchModeActive = false
+
+    if not IsSceneOwnerShowing(self) then
+        PurgeKeybindGroup(self.searchKeybindDescriptor)
+        PurgeKeybindGroup(self.activeKeybindDescriptor)
+        return wasActive
+    end
+    if not wasActive then return false end
 
     if KEYBIND_STRIP then
         if self.searchKeybindDescriptor then
@@ -207,6 +264,7 @@ function BETTERUI.CIM.UnifiedScreen:ExitSearchMode()
         end
     end
     if BETTERUI.Log then BETTERUI.Log.Trace(BETTERUI.Log.CATEGORY.KEYBIND, "search mode", { active = self._searchModeActive }) end
+    return true
 end
 
 -- EXPORTED MODE CONSTANTS (Convenience)

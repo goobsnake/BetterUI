@@ -150,6 +150,10 @@ local HeaderSortIntegration = BETTERUI.CIM.UI.HeaderSortIntegration
 
 local function buildOwner()
     return {
+        sceneShowing = true,
+        IsSceneShowing = function(self)
+            return self.sceneShowing == true
+        end,
         list = {
             active = true,
             deactivateCalls = 0,
@@ -447,6 +451,64 @@ do
 
     assert_true(KEYBIND_STRIP.groups[owner.coreKeybinds] == true,
         "exit header mode restores owner keybinds after navigation reactivation")
+end
+
+do
+    KEYBIND_STRIP.added = {}
+    KEYBIND_STRIP.removed = {}
+    KEYBIND_STRIP.groups = {}
+    local owner = buildOwner()
+    owner.sceneShowing = false
+    local integration = HeaderSortIntegration.Install(owner, {
+        list = owner.list,
+        columns = { { key = "name" } },
+        callbacks = { onSortChanged = function() end },
+        keybinds = { mainDescriptor = owner.coreKeybinds },
+        navigation = { suspendTabBar = true },
+    })
+
+    HeaderSortIntegration.EnsureController(integration)
+    assert_eq(HeaderSortIntegration.EnterHeaderMode(integration), false,
+        "hidden scene cannot enter header sort mode")
+    assert_eq(#KEYBIND_STRIP.added, 0,
+        "hidden header-sort entry cannot add keybinds")
+    assert_eq(owner.headerGeneric.tabBar.deactivateCalls, 0,
+        "hidden header-sort entry does not mutate navigation ownership")
+end
+
+do
+    KEYBIND_STRIP.added = {}
+    KEYBIND_STRIP.removed = {}
+    KEYBIND_STRIP.groups = {}
+    local owner = buildOwner()
+    KEYBIND_STRIP:AddKeybindButtonGroup(owner.coreKeybinds)
+    local navigationReactivateCalls = 0
+    local integration = HeaderSortIntegration.Install(owner, {
+        list = owner.list,
+        columns = { { key = "name" } },
+        callbacks = { onSortChanged = function() end },
+        keybinds = { mainDescriptor = owner.coreKeybinds },
+        navigation = {
+            suspendTabBar = true,
+            suspendList = true,
+            reactivate = function()
+                navigationReactivateCalls = navigationReactivateCalls + 1
+            end,
+        },
+    })
+
+    HeaderSortIntegration.EnsureController(integration)
+    HeaderSortIntegration.EnterHeaderMode(integration)
+    owner.sceneShowing = false
+    HeaderSortIntegration.ExitHeaderMode(integration)
+    assert_true(KEYBIND_STRIP.groups[owner.coreKeybinds] == nil,
+        "hidden header-sort exit does not restore the main keybind group")
+    assert_eq(owner.headerGeneric.tabBar.activateCalls, 0,
+        "hidden header-sort exit does not reactivate the tab bar")
+    assert_eq(owner.list.activateCalls, 0,
+        "hidden header-sort exit does not reactivate the item list")
+    assert_eq(navigationReactivateCalls, 0,
+        "hidden header-sort exit does not reactivate navigation")
 end
 
 do
